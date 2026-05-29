@@ -1,0 +1,21 @@
+# OS
+.DS_Store
+
+# Node
+node_modules/
+
+# Env files (allow only .example)
+.env
+.env.*
+!.env*.example
+
+# Supabase secrets and local state
+supabase/.env
+supabase/.branches
+supabase/.temp
+
+# Vercel local
+.vercel
+
+# Claude project metadata
+.claude/
