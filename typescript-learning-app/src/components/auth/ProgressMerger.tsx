@@ -1,11 +1,14 @@
 'use client'
 
 import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { clearGuestProgress, getGuestSnapshot } from '@/lib/progress/guest'
 import { mergeGuestProgress } from '@/lib/progress/actions'
 
 export function ProgressMerger() {
+  const router = useRouter()
+
   useEffect(() => {
     const supabase = createClient()
 
@@ -17,9 +20,10 @@ export function ProgressMerger() {
 
       mergeGuestProgress([...completed]).then(() => {
         clearGuestProgress()
+        router.refresh()
       })
     })
-  }, [])
+  }, [router])
 
   return null
 }
