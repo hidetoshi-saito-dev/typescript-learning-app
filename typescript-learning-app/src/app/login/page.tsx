@@ -2,20 +2,23 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { LoginButtons } from '@/components/auth/LoginButtons'
+import { safeRedirectPath } from '@/lib/auth/safe-redirect'
 
 type Props = {
   searchParams: Promise<{ redirect?: string; error?: string }>
 }
 
 export default async function LoginPage({ searchParams }: Props) {
-  const { redirect: redirectTo, error } = await searchParams
+  const { redirect: rawRedirect, error } = await searchParams
+  // 外部URL/プロトコル相対への誘導を防ぐため内部パスのみ許可する
+  const redirectTo = safeRedirectPath(rawRedirect)
 
   // ログイン済みならスキップ
   const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (user) redirect(redirectTo ?? '/')
+  if (user) redirect(redirectTo)
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-zinc-50 px-4">
@@ -35,7 +38,7 @@ export default async function LoginPage({ searchParams }: Props) {
             </div>
           )}
 
-          <LoginButtons redirectTo={redirectTo ?? '/'} />
+          <LoginButtons redirectTo={redirectTo} />
 
           <p className="mt-6 text-center text-xs text-zinc-400">
             ログインすることで、学習進捗がクラウドに保存されます
