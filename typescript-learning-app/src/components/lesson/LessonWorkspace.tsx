@@ -72,7 +72,12 @@ export function LessonWorkspace({ lesson, prevLesson, nextLesson, isGuest = true
     dispatch({ type: 'DIAGNOSTICS_UPDATE', diagnostics })
   }, [])
 
+  // 同期的な実行中フラグ。judgePhase（React state）は非同期更新のため、
+  // 二重クリックの極小窓で worker が多重生成されるのを防ぐ。
+  const inFlightRef = useRef(false)
+
   const handleJudge = useCallback(async () => {
+    if (inFlightRef.current) return
     const { judgePhase, diagnostics, code } = stateRef.current
     if (judgePhase.phase === 'judging') return
 
@@ -85,16 +90,21 @@ export function LessonWorkspace({ lesson, prevLesson, nextLesson, isGuest = true
       return
     }
 
+    inFlightRef.current = true
     dispatch({ type: 'JUDGE_START' })
-    const result = await judge({ code, testCases: lesson.testCases })
-    dispatch({ type: 'JUDGE_DONE', result })
+    try {
+      const result = await judge({ code, testCases: lesson.testCases })
+      dispatch({ type: 'JUDGE_DONE', result })
 
-    if (result.status === 'correct') {
-      if (isGuest) {
-        markComplete(lesson.id)
-      } else {
-        await markLessonComplete(lesson.id)
+      if (result.status === 'correct') {
+        if (isGuest) {
+          markComplete(lesson.id)
+        } else {
+          await markLessonComplete(lesson.id)
+        }
       }
+    } finally {
+      inFlightRef.current = false
     }
   }, [lesson, isGuest])
 
