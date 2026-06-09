@@ -1,6 +1,15 @@
 // judge.worker.ts — ブラウザ内隔離実行ワーカー（Phase 4-1 完全クライアントサイド判定 Step2）
-// TypeScript を transpileModule でトランスパイル → Function コンストラクタで実行
+// TypeScript を transpileModule でトランスパイル → AsyncFunction コンストラクタで実行
 // タイムアウト制御は呼び出し元（main thread）が worker.terminate() で担当
+//
+// 【なぜ AsyncFunction か（中級 030/031 非同期レッスン対応）】
+// 中級の Promise/async レッスンでは assertion 内で `await delay(...)` のように await を使う。
+// transpileModule({ module: None }) はトップレベル await を変換せず出力にそのまま残すため、
+// 従来の `new Function(out)()` で実行すると `await is not defined` で必ず throw していた。
+// AsyncFunction（= async 関数のコンストラクタ）で実行すると本体内なので await が合法になり、
+// 同期コード（001-029）も async 関数内で等価に動く（同期 throw は reject 化され await で捕捉）。
+// 【重要】各ケースを必ず `await` すること。await し損ねると、失敗すべき assertion の reject が
+// try/catch をすり抜けて誤って「正解」判定になる（偽陽性）。
 
 import ts from 'typescript'
 import type { TestCase, WorkerResult } from '@/types'
@@ -10,7 +19,11 @@ type WorkerInput = {
   testCases: TestCase[]
 }
 
-self.addEventListener('message', (event: MessageEvent<WorkerInput>) => {
+// async 関数のコンストラクタ。`AsyncFunction(body)` は実行時に async 関数を生成する。
+// グローバルには公開されていないため async 関数のプロトタイプ経由で取得する。
+const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor as FunctionConstructor
+
+self.addEventListener('message', async (event: MessageEvent<WorkerInput>) => {
   const { code, testCases } = event.data
   const failedTests: string[] = []
 
@@ -28,9 +41,10 @@ self.addEventListener('message', (event: MessageEvent<WorkerInput>) => {
         },
       }).outputText
 
-      // Function コンストラクタで隔離実行
-      // Worker コンテキスト内なので main thread には影響しない
-      new Function(transpiled)()
+      // AsyncFunction で隔離実行し、Promise の解決まで await する。
+      // Worker コンテキスト内なので main thread には影響しない。
+      // await 必須: 非同期 assertion の失敗（reject）をここで確実に捕捉するため。
+      await new AsyncFunction(transpiled)()
     } catch (e) {
       // throw new Error("...") のメッセージがあればそれを表示、なければテスト名にフォールバック
       const msg = e instanceof Error && e.message ? e.message : tc.description

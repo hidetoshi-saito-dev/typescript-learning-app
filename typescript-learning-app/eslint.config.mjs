@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     'out/**',
     'build/**',
     'next-env.d.ts',
+    // 検証用 Node スクリプト（ブラウザ判定ロジックの回帰テスト。アプリのビルド対象外）
+    'scripts/**',
   ]),
 ])
 

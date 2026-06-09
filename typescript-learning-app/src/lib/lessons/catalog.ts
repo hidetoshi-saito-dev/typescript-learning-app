@@ -14,6 +14,22 @@ import { lesson as lesson012 } from './data/012-typeof-guard'
 import { lesson as lesson013 } from './data/013-in-guard'
 import { lesson as lesson014 } from './data/014-generics-basic'
 import { lesson as lesson015 } from './data/015-generics-constraint'
+import { lesson as lesson016 } from './data/016-keyof'
+import { lesson as lesson017 } from './data/017-indexed-access'
+import { lesson as lesson018 } from './data/018-typeof-type'
+import { lesson as lesson019 } from './data/019-as-const'
+import { lesson as lesson020 } from './data/020-readonly'
+import { lesson as lesson021 } from './data/021-partial-required'
+import { lesson as lesson022 } from './data/022-pick'
+import { lesson as lesson023 } from './data/023-omit'
+import { lesson as lesson024 } from './data/024-record'
+import { lesson as lesson025 } from './data/025-unknown'
+import { lesson as lesson026 } from './data/026-discriminated-union'
+import { lesson as lesson027 } from './data/027-never-exhaustiveness'
+import { lesson as lesson028 } from './data/028-type-predicate'
+import { lesson as lesson029 } from './data/029-function-type'
+import { lesson as lesson030 } from './data/030-promise'
+import { lesson as lesson031 } from './data/031-awaited-async'
 
 const LESSONS: Lesson[] = [
   lesson001,
@@ -31,6 +47,22 @@ const LESSONS: Lesson[] = [
   lesson013,
   lesson014,
   lesson015,
+  lesson016,
+  lesson017,
+  lesson018,
+  lesson019,
+  lesson020,
+  lesson021,
+  lesson022,
+  lesson023,
+  lesson024,
+  lesson025,
+  lesson026,
+  lesson027,
+  lesson028,
+  lesson029,
+  lesson030,
+  lesson031,
 ]
 
 const catalog = new Map(LESSONS.map((l) => [l.id, l]))
