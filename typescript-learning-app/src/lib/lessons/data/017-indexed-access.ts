@@ -17,7 +17,7 @@ function getTitle(article: Article): string {
     {
       description: '戻り値の型に Article["title"] を使っている',
       assertion: `
-if (!/Article\\[["']title["']\\]/.test(__originalCode__)) {
+if (!/Article\\[["']title["']\\]/.test(__rawCode__)) {
   throw new Error("戻り値の型を Article[\\"title\\"] というインデックスアクセス型で書いてください。")
 }
 `,

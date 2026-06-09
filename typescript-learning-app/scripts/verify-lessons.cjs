@@ -36,8 +36,47 @@ function loadLesson(file) {
   return m.exports.lesson
 }
 
+/**
+ * judge.worker.ts の sanitizeForChecks をミラー。
+ * コメント除去（structure/noComments 共通）＋文字列中身ブランク（structure のみ）。
+ */
+function sanitizeForChecks(source) {
+  const scanner = ts.createScanner(ts.ScriptTarget.Latest, false, ts.LanguageVariant.Standard, source)
+  const blank = (s) => s.replace(/[^\r\n]/g, ' ')
+  let structure = ''
+  let noComments = ''
+  let token = scanner.scan()
+  while (token !== ts.SyntaxKind.EndOfFileToken) {
+    const text = scanner.getTokenText()
+    if (
+      token === ts.SyntaxKind.SingleLineCommentTrivia ||
+      token === ts.SyntaxKind.MultiLineCommentTrivia
+    ) {
+      const b = blank(text)
+      structure += b
+      noComments += b
+    } else if (
+      token === ts.SyntaxKind.StringLiteral ||
+      token === ts.SyntaxKind.NoSubstitutionTemplateLiteral
+    ) {
+      structure += text.length >= 2 ? text[0] + blank(text.slice(1, -1)) + text[text.length - 1] : text
+      noComments += text
+    } else {
+      structure += text
+      noComments += text
+    }
+    token = scanner.scan()
+  }
+  return { structure, noComments }
+}
+
 function buildFullCode(code, assertion) {
-  return `const __originalCode__ = ${JSON.stringify(code)}\n${code}\n${assertion}`
+  const { structure, noComments } = sanitizeForChecks(code)
+  return (
+    `const __originalCode__ = ${JSON.stringify(structure)}\n` +
+    `const __rawCode__ = ${JSON.stringify(noComments)}\n` +
+    `${code}\n${assertion}`
+  )
 }
 
 /** 旧: new Function（同期） */
@@ -96,12 +135,69 @@ const SOLUTIONS = {
   '030-promise': `function delay(ms: number, value: string): Promise<string> {\n  return new Promise((resolve) => setTimeout(() => resolve(value), ms))\n}`,
   '031-awaited-async': `async function fetchName(): Promise<string> {\n  return "Alice"\n}\n\nasync function greet(): Promise<string> {\n  const name = await fetchName()\n  return "こんにちは、" + name\n}`,
 }
-const WRONG = {
-  // 015 の誤り: 制約を外すと正規表現チェックで落ちる（実行値は通るが①相当の構文ゲートで不正解）
-  '015-generics-constraint': `function getLength<T>(value: T): number {\n  return (value as any).length\n}`,
-  // 018 の誤り: typeof 型を使わず手書き型のままだと②で不正解になるべき
-  '018-typeof-type': `const defaultConfig = { theme: "dark", fontSize: 14 }\n\nfunction applyConfig(config: { theme: string; fontSize: number }): string {\n  return config.theme + ":" + config.fontSize\n}`,
-}
+// 誤り版（id 重複可なので配列）。label は失敗理由の説明。
+// 「コメント/文字列バイパス」= 型を書かずキーワードをコメントや文字列に置くチート答案。
+// これらは sanitizeForChecks 導入後は②で incorrect になる（偽陽性修正の回帰ガード）。
+const WRONG = [
+  // 015: 制約を外すと②構文ゲートで落ちる
+  {
+    id: '015-generics-constraint',
+    label: '制約なし',
+    code: `function getLength<T>(value: T): number {\n  return (value as any).length\n}`,
+  },
+  // 018: typeof 型を使わず手書き型のままだと②で不正解
+  {
+    id: '018-typeof-type',
+    label: '手書き型',
+    code: `const defaultConfig = { theme: "dark", fontSize: 14 }\n\nfunction applyConfig(config: { theme: string; fontSize: number }): string {\n  return config.theme + ":" + config.fontSize\n}`,
+  },
+  // 016: keyof をコメント/文字列に置いただけのチート → ②不一致で incorrect
+  {
+    id: '016-keyof',
+    label: 'コメントバイパス',
+    code: `// extends keyof T\nfunction getProperty(obj, key) {\n  return obj[key]\n}`,
+  },
+  {
+    id: '016-keyof',
+    label: '文字列バイパス',
+    code: `const _hint = "extends keyof T"\nfunction getProperty(obj, key) {\n  return obj[key]\n}`,
+  },
+  // 024: Record をコメント/文字列に置いただけのチート
+  {
+    id: '024-record',
+    label: 'コメントバイパス',
+    code: `// Record<"yen" | "usd", number>\nconst rates = { yen: 150, usd: 1 }\n\nfunction getRate(currency) {\n  return rates[currency]\n}`,
+  },
+  {
+    id: '024-record',
+    label: '文字列バイパス',
+    code: `const _hint = "Record<"\nconst rates = { yen: 150, usd: 1 }\n\nfunction getRate(currency) {\n  return rates[currency]\n}`,
+  },
+  // 020: Readonly をコメントに置いただけ（実装は素の Point）
+  {
+    id: '020-readonly',
+    label: 'コメントバイパス',
+    code: `type Point = { x: number; y: number }\n\n// Readonly<Point>\nfunction describe(point: Point): string {\n  return point.x + "," + point.y\n}`,
+  },
+  // 022: Pick をコメントに置いただけ
+  {
+    id: '022-pick',
+    label: 'コメントバイパス',
+    code: `type User = { id: number; name: string; email: string; password: string }\n\n// Pick<User, "id" | "name">\nfunction toSummary(user: User) {\n  return { id: user.id, name: user.name }\n}`,
+  },
+  // 023: Omit をコメントに置いただけ
+  {
+    id: '023-omit',
+    label: 'コメントバイパス',
+    code: `type User = { id: number; name: string; password: string }\n\n// Omit<User, "password">\nfunction toPublic(user: User) {\n  const { password, ...rest } = user\n  return rest\n}`,
+  },
+  // 009: リテラル値レッスンも、"left" 等をコメントに置くチートは __rawCode__ のコメント除去で incorrect
+  {
+    id: '009-literal-type',
+    label: 'コメントバイパス',
+    code: `function setAlignment(direction: "a" | "b") {\n  // "left" | "right" | "center"\n  return "align: " + direction\n}`,
+  },
+]
 
 ;(async () => {
   const files = fs
@@ -142,16 +238,16 @@ const WRONG = {
   }
 
   console.log('\n=== 前進: 誤り版が incorrect を返すか（AsyncFunction 版） ===')
-  for (const [id, code] of Object.entries(WRONG)) {
+  for (const { id, label, code } of WRONG) {
     const lesson = lessons[id]
     if (!lesson) {
-      console.log(`  ${id}: SKIP (レッスン未実装)`)
+      console.log(`  ${id} [${label}]: SKIP (レッスン未実装)`)
       continue
     }
     const r = await judgeAsync(code, lesson.testCases)
     const ok = r === 'incorrect'
     if (!ok) solFails++
-    console.log(`  ${id}: wrong=${r} ${ok ? 'OK' : '*** FAIL ***'}`)
+    console.log(`  ${id} [${label}]: wrong=${r} ${ok ? 'OK' : '*** FAIL ***'}`)
   }
 
   console.log(

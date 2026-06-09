@@ -19,8 +19,8 @@ function move(animal: Fish | Bird) {
       description: 'in 演算子による型ガードが使われている',
       assertion: `
 const hasInGuard =
-  /["']swim["'][ \t]+in[ \t]+animal/.test(__originalCode__) ||
-  /["']fly["'][ \t]+in[ \t]+animal/.test(__originalCode__)
+  /["']swim["'][ \t]+in[ \t]+animal/.test(__rawCode__) ||
+  /["']fly["'][ \t]+in[ \t]+animal/.test(__rawCode__)
 if (!hasInGuard) {
   throw new Error("'swim' in animal のような in 演算子による型ガードを使ってください。")
 }

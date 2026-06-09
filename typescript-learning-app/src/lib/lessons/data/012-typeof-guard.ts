@@ -16,8 +16,8 @@ export const lesson: Lesson = {
       description: 'typeof による型ガードが使われている',
       assertion: `
 const hasTypeofGuard =
-  /typeof[ \t]+value[ \t]*===[ \t]*["']string["']/.test(__originalCode__) ||
-  /typeof[ \t]+value[ \t]*===[ \t]*["']number["']/.test(__originalCode__)
+  /typeof[ \t]+value[ \t]*===[ \t]*["']string["']/.test(__rawCode__) ||
+  /typeof[ \t]+value[ \t]*===[ \t]*["']number["']/.test(__rawCode__)
 if (!hasTypeofGuard) {
   throw new Error("typeof value === 'string' のような型ガードを使ってください。")
 }
