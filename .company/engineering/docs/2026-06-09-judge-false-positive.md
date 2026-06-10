@@ -60,12 +60,18 @@
   型未記述コードを型エラー化し型ゲートでブロックする二重防御。**strict の効きは Monaco TS ワーカー依存のため静的確認では確定不可** → dev 起動＋実機操作での確認を別途行うまで「完了」としない。
 - **回帰ガード**: `verify-lessons.cjs` の WRONG をコメント/文字列バイパス答案で拡充（016/020/022/023/024/009）。
 
-### 検証結果（`node scripts/verify-lessons.cjs`・tsc・lint）
-- 回帰ミスマッチ **0件** / 模範解答 **19件すべて correct** / 誤り版（バイパス10件含む）**すべて incorrect**。
+### 検証結果（`verify-lessons.cjs`・`verify-strict.cjs`・tsc・lint）
+- ②/③: 回帰ミスマッチ **0件** / 模範解答 **19件すべて correct** / 誤り版（バイパス10件含む）**すべて incorrect**。
+- ① strict（`node scripts/verify-strict.cjs`・本物の typescript で strict コンパイル）:
+  - **模範解答19件すべて strict clean**＝「正答が型エラーで判定ブロックされる」回帰なし。
+  - initialCode の strict エラーは型必須レッスン（001/002/004/005/006/012/013/015/016/021/027/028/029）のみで、内容が学習目標と一致。**spurious（無関係）エラーなし**＝strict が正当な完了を阻害しない。
 - `tsc --noEmit` PASS / `npm run lint` PASS。
+- ゲート配線（lessons/* で 005+ は `/login?redirect=` へ 307・001-004 はゲスト200）も dev で確認。
 
-### 残作業
-- **① strict 化のブラウザ実機検証**: dev 起動 → 016 等で「型なし初期コードが型エラー表示＆判定ブロック」「模範解答で型エラー消え判定通過」を目視。初級001-015の初期コードが strict で意図せぬブロックを起こさないかも確認。
+### 残作業（ブラウザ目視のみ）
+ヘッドレスで論理は確定済み。残るは **Monaco TS ワーカーが strict 診断を実際に画面へ surface するか**の目視のみ（診断→型ゲートの配線自体は 2026-06-07 に本番実証済み）。
+- ゲスト lesson 001 で「初期コードに implicit any エラー表示＆『型エラーを修正してください』で判定ブロック」「`: string` 追加でエラー消え判定通過」を確認。
+- NG（strict が効かない/効きすぎ）の場合は commit `4c0b3ba`（strict層）のみ revert。
 - 027 の②は `: never`（コードトークン）なのでサニタイズ後はコメント偽装不能。③（triangle=6）が本質ゲートのため現状維持。
 
 ### 再発防止 / TypeScript で防ぐ
