@@ -199,7 +199,7 @@ const WRONG = [
   },
 ]
 
-;(async () => {
+async function main() {
   const files = fs
     .readdirSync(DATA_DIR)
     .filter((f) => f.endsWith('.ts'))
@@ -254,4 +254,9 @@ const WRONG = [
     `\n結果: 回帰ミスマッチ ${mismatches} 件 / 前進失敗 ${solFails} 件 / 検証レッスン ${Object.keys(lessons).length} 本`,
   )
   process.exit(mismatches + solFails === 0 ? 0 : 1)
-})()
+}
+
+// 他スクリプト（verify-strict.cjs 等）から SOLUTIONS 等を再利用できるようエクスポート。
+// 直接実行されたときだけ検証を走らせる。
+module.exports = { SOLUTIONS, WRONG, sanitizeForChecks, loadLesson, transpile }
+if (require.main === module) main()
