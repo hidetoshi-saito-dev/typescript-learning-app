@@ -32,6 +32,12 @@ dev で目視、全項目パス:
 
 → 偽陽性②/③/①すべて実機確認済み。中級リリースのブロッカー解除。次は feature/intermediate-016-031 の PR化→マージ。
 
+### 追記：PR #3 マージ・本番反映（同日 2026-06-11）✅
+- `feature/intermediate-016-031` を **PR #3** として作成 → ユーザーがマージ（merge commit `5ef5788`・2 checks passed）。
+- 本番デプロイ確認: merge commit の GitHub commit status が **`Vercel: success`** → 中級16本が **ts-tonari.app に本番反映**。
+- 確認時の学び: `/lessons/*` は middleware が存在チェック前に一律 `/login?redirect=` へ 307 ゲートするため、**curl の 307 はレッスン実在の証明にならない**。デプロイ可否は Vercel の commit status（または要ログインで目視）で確認するのが正。
+- ローカル: master へ checkout・pull 済み、マージ済みブランチ削除、dev サーバ停止。
+
 ### 関連
 - 正本: `.company/engineering/docs/2026-06-09-judge-false-positive.md`
 - 前日の意思決定: `.company/secretary/notes/2026-06-10-decisions.md`
