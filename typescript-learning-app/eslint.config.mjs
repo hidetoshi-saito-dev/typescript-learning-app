@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     'next-env.d.ts',
     // 検証用 Node スクリプト（ブラウザ判定ロジックの回帰テスト。アプリのビルド対象外）
     'scripts/**',
+    // self-host 用に node_modules からコピーした Monaco アセット（生成物・minified・lint対象外）
+    'public/monaco/**',
   ]),
 ])
 

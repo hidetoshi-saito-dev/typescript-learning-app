@@ -17,6 +17,9 @@
 /.next/
 /out/
 
+# self-hosted Monaco assets (build-time copy from node_modules; see scripts/copy-monaco.cjs)
+/public/monaco/
+
 # production
 /build
 
