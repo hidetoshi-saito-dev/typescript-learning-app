@@ -15,7 +15,7 @@ export const lesson: Lesson = {
     {
       description: 'direction の型が string のままでない',
       assertion: `
-if (/direction[ \t]*:[ \t]*string[ \t]*[)]/.test(__originalCode__)) {
+if (/direction[ \t]*:[ \t]*string[ \t]*[)]/.test(__rawCode__)) {
   throw new Error('direction の型は string から "left" | "right" | "center" のリテラル型に変更してください。')
 }
 `,
@@ -23,7 +23,7 @@ if (/direction[ \t]*:[ \t]*string[ \t]*[)]/.test(__originalCode__)) {
     {
       description: 'direction の型に "left" が含まれている',
       assertion: `
-if (!__originalCode__.includes('"left"') && !__originalCode__.includes("'left'")) {
+if (!__rawCode__.includes('"left"') && !__rawCode__.includes("'left'")) {
   throw new Error('direction の型に "left" を含むリテラル型を使ってください。例: "left" | "right" | "center"')
 }
 `,
@@ -31,10 +31,10 @@ if (!__originalCode__.includes('"left"') && !__originalCode__.includes("'left'")
     {
       description: 'direction の型に "right" と "center" が含まれている',
       assertion: `
-if (!__originalCode__.includes('"right"') && !__originalCode__.includes("'right'")) {
+if (!__rawCode__.includes('"right"') && !__rawCode__.includes("'right'")) {
   throw new Error('direction の型に "right" を含むリテラル型を使ってください。')
 }
-if (!__originalCode__.includes('"center"') && !__originalCode__.includes("'center'")) {
+if (!__rawCode__.includes('"center"') && !__rawCode__.includes("'center'")) {
   throw new Error('direction の型に "center" を含むリテラル型を使ってください。')
 }
 `,

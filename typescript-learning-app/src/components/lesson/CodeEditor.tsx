@@ -81,6 +81,19 @@ export function CodeEditor({ initialCode, onChange, onDiagnosticsChange }: Props
       editorRef.current = editor
       monacoRef.current = monaco
 
+      // 型を書くことが学習の核心。Monaco を strict 化して「型を書かない/誤った」コードを
+      // 型エラーとして検出させ、LessonWorkspace の型ゲート（hasErrors）が判定をブロックする。
+      // これは判定エンジン偽陽性修正(2026-06-09)の①層: ②正規表現の構造化と二重化する防御。
+      // Monaco 0.55+: 型サービス設定はトップレベルの monaco.typescript に移動
+      // （monaco.languages.typescript は deprecated）。
+      // 【要ブラウザ実機検証】strict の効き方は Monaco TS ワーカー依存のため静的確認では確定不可。
+      const tsDefaults = monaco.typescript.typescriptDefaults
+      tsDefaults.setCompilerOptions({
+        ...tsDefaults.getCompilerOptions(),
+        strict: true,
+        noImplicitAny: true,
+      })
+
       // TSワーカーがモデルの診断を更新するたびに fetchDiagnostics を呼ぶ
       disposableRef.current = monaco.editor.onDidChangeMarkers((uris) => {
         const model = editor.getModel()
