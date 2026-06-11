@@ -14,16 +14,17 @@ const baseSecurityHeaders = [
 // - 'unsafe-inline'(script): Next.js のハイドレーション用 inline script に必須。
 //   ※ 'unsafe-eval' が既に必要な構成のため、inline injection の追加防御は実質得られない判断（案A）。
 //     base-uri / form-action / frame-ancestors / connect-src の制限は引き続き有効。
-// - jsdelivr: Monaco 本体(js)・CSS を CDN から読み込むため script/style/connect に許可。
-//   ② Monaco セルフホスト化が完了したら jsdelivr を全ディレクティブから削除する。
+// - Monaco は self-host（public/monaco/vs・scripts/copy-monaco.cjs）に移行済みのため、
+//   jsdelivr は全ディレクティブから削除済み（2026-06-11・②セルフホスト完了）。
+//   Monaco 本体/CSS/ワーカーはすべて同一オリジン 'self'（worker は blob: 経由）から読み込む。
 const contentSecurityPolicy = [
   "default-src 'self'",
   "frame-ancestors 'none'",
-  "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdn.jsdelivr.net",
+  "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
   "worker-src 'self' blob:",
-  "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
+  "style-src 'self' 'unsafe-inline'",
   "font-src 'self' data:",
-  "connect-src 'self' https://*.supabase.co https://cdn.jsdelivr.net",
+  "connect-src 'self' https://*.supabase.co",
   "img-src 'self' data: https:",
   "base-uri 'self'",
   "form-action 'self'",

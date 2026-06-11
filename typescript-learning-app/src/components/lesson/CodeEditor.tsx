@@ -2,12 +2,19 @@
 
 import { useRef, useCallback, useEffect } from 'react'
 import dynamic from 'next/dynamic'
+import { loader } from '@monaco-editor/react'
 import type * as MonacoNS from 'monaco-editor'
 import { toJpMessage } from '@/lib/diagnostics/jp-messages'
 import type { TypeScriptDiagnostic } from '@/types'
 
 // ssr: false は Client Component 内でのみ使用可（Next.js 16 仕様）
 const MonacoEditor = dynamic(() => import('@monaco-editor/react'), { ssr: false })
+
+// Monaco 本体を self-host（public/monaco/vs）から読み込む。
+// 既定の CDN(jsdelivr) 依存を解消し、CSP から jsdelivr を削除できる（サプライチェーン縮小）。
+// アセットは scripts/copy-monaco.cjs が build/dev 前に node_modules からコピーする。
+// loader はエディタ初期化前に設定する必要があるためモジュールスコープで一度だけ呼ぶ。
+loader.config({ paths: { vs: '/monaco/vs' } })
 
 // monaco-editor の診断レスポンス型（簡略版）
 type RawDiagnostic = {
