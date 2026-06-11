@@ -1,0 +1,78 @@
+# CI 常設ゲート — 全 push / PR で品質チェックを強制する
+#
+# ゲート構成（typescript-learning-app/）:
+#   依存監査 → 型 → lint → フォーマット → ユニット(vitest) →
+#   レッスン判定回帰(verify-lessons: 偽陽性バイパス封鎖のカナリア込み) →
+#   strict妥当性(verify-strict: 模範解答が strict clean) → 本番ビルド → E2E(Playwright)
+#
+# E2E は Supabase 非依存のゲスト動線のみ（ダミーURL・Cookie なしなら supabase-js は
+# ネットワークへ出ない）。判定エンジンの背骨（Monaco self-host → strict 診断 →
+# 型ゲート → judge worker）をヘッドレスブラウザで検証する。
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+env:
+  NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-dummy-anon-key
+
+defaults:
+  run:
+    working-directory: typescript-learning-app
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: typescript-learning-app/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Audit (high 以上をブロック / moderate 方針は security.md 2-7)
+        run: npm audit --audit-level=high
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Format check
+        run: npm run format:check
+
+      - name: Unit tests (vitest)
+        run: npm test
+
+      - name: Lesson judge regression (verify-lessons)
+        run: node scripts/verify-lessons.cjs
+
+      - name: Strict validity of model answers (verify-strict)
+        run: node scripts/verify-strict.cjs
+
+      - name: Build (production)
+        run: npm run build
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: E2E tests (Playwright)
+        run: npm run test:e2e
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: typescript-learning-app/playwright-report/
+          retention-days: 7

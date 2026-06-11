@@ -69,7 +69,9 @@ for (const [id, code] of Object.entries(SOLUTIONS)) {
   }
 }
 
-console.log('\n=== strict: initialCode の診断（型必須レッスンはエラーが正常＝判定ブロックで型を促す）===')
+console.log(
+  '\n=== strict: initialCode の診断（型必須レッスンはエラーが正常＝判定ブロックで型を促す）===',
+)
 for (const id of Object.keys(initial).sort()) {
   const d = strictDiagnostics(initial[id])
   console.log(`  ${id}: ${d.length === 0 ? 'エラーなし' : d.length + ' 件 → ' + d.join(' | ')}`)
