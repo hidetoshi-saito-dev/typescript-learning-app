@@ -158,6 +158,33 @@ export async function markLessonComplete(lessonId: string) {
 - 保存するのは `lesson_id`（文字列）のみ。センシティブ情報を localStorage に保存しない
 - ログイン時に upsert でDBへマージ後、localStorage のゲスト進捗は削除する
 
+### 2-7. 依存パッケージの脆弱性管理（npm audit・2026-06-11 対応）
+
+npm audit moderate 4件（postcss ×2エントリ・dompurify ×2エントリ）への対応。
+`npm audit fix --force` は next@9 / monaco@0.53 への破壊的ダウングレードを提案するため不採用とし、
+`package.json` の `overrides` で修正版へ差し替えた。
+
+**postcss <8.5.10（next 同梱）→ override で 8.5.15**
+- なぜ危険か: CSS stringify 出力中の `</style>` 未エスケープで XSS の可能性（GHSA-qx2v-qp2m-jg93）
+- 実リスク評価: 本アプリはユーザー制御の CSS を stringify しない（Tailwind ビルドのみ）ため実害なし
+- なぜ override か: next は最新 16.2.9 でも postcss 8.4.31 を固定ピンしており、本体更新では解消不可
+- 注意: スコープ付き override（`"next": {"postcss": ...}`）は既存 lockfile の nested エントリに適用されず、
+  グローバル override（`"postcss": "8.5.15"`）で解消した（root 側 tailwind チェーンは元々 8.5.15）
+
+**dompurify <=3.3.3（monaco-editor 0.55.1 依存）→ override で 3.4.9（※残存リスクあり）**
+- なぜ危険か: sanitize バイパス・prototype pollution 等の複数 advisory（mXSS 系）
+- **残存リスク: 配信される Monaco min バンドル（`public/monaco/vs/editor.api-*.js`）には dompurify が
+  バンドル済みで、npm override はバンドル内のコピーには届かない**
+- 実リスク評価: Monaco の dompurify はホバー等の markdown sanitize に使用される。本アプリは
+  他ユーザー由来のコードを表示しない（コード共有機能なし・進捗は lesson_id のみ）ため、
+  攻撃面は自己 XSS に限定され低リスクと判断
+- 恒久対応: 修正済み dompurify を同梱する monaco-editor **安定版**（0.56 系）リリース時にアップグレード
+  （2026-06-11 時点の安定版最新は 0.55.1、0.56 は dev ビルドのみ）
+- 検証: `npm audit` 0件 / tsc / eslint / verify-lessons / verify-strict / `next build` すべて PASS
+
+運用: CI の常設ゲートに `npm audit --audit-level=high` を組み込み、新規 high 以上の混入を防ぐ
+（moderate はバンドル同梱等で即修正できないケースがあるため、high 以上をブロック基準とする）。
+
 ---
 
 ## セキュリティチェックリスト（実装前確認用）

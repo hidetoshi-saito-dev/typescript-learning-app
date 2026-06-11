@@ -32,5 +32,11 @@
     "prettier": "^3.8.3",
     "tailwindcss": "^4",
     "typescript": "^5.9.3"
+  },
+  "overrides": {
+    "monaco-editor": {
+      "dompurify": "3.4.9"
+    },
+    "postcss": "8.5.15"
   }
 }
