@@ -27,12 +27,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function LessonPage({ params }: Props) {
   // Monaco（self-host）の起動チェーンを HTML 段階で先読みさせ、
-  // 「ハイドレーション完了 → loader 発見」の直列待ちを解消する（LCP/CLS 対策）。
+  // 「ハイドレーション完了 → loader 発見」の直列待ちを解消する（LCP 対策）。
+  // 【fetchPriority: 'low' が必須】既定優先度で preload すると、初回ペイントに必要な
+  // CSS/フォントと帯域を奪い合い FCP を悪化させる（本番 Lighthouse で実測:
+  // editor.main.css を as=style(VeryHigh) で preload した版は FCP 1.1s→7.0s に退行。
+  // チェーン起動が早まるほど 948KB の editor チャンクがペイント前に流入するため）。
+  // low なら「クリティカルに譲りつつキャッシュだけ温める」になる。
+  // CSS は preload しない（102KB・最大の競合源。AMD loader が後で自前取得する）。
   // 対象はバージョン非依存の安定ファイル名のみ（ハッシュ付きチャンクは copy 時に変わる）。
-  preload('/monaco/vs/loader.js', { as: 'script' })
-  preload('/monaco/vs/editor/editor.main.js', { as: 'script' })
-  preload('/monaco/vs/editor/editor.main.css', { as: 'style' })
-  preload('/monaco/vs/nls.messages-loader.js', { as: 'script' })
+  preload('/monaco/vs/loader.js', { as: 'script', fetchPriority: 'low' })
+  preload('/monaco/vs/editor/editor.main.js', { as: 'script', fetchPriority: 'low' })
   const { lessonId } = await params
   const lessons = getCatalogList()
   const index = lessons.findIndex((l) => l.id === lessonId)
