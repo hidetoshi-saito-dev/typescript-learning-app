@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 1200px;
+        height: 630px;
+        overflow: hidden;
+      }
+      body {
+        font-family: 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', sans-serif;
+        background: linear-gradient(135deg, #09090b 0%, #18181b 55%, #1e2a4a 100%);
+        color: #fafafa;
+        display: flex;
+        align-items: center;
+        padding: 0 64px;
+        gap: 44px;
+        position: relative;
+      }
+      /* うっすらグリッド模様 */
+      body::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+        background-size: 44px 44px;
+      }
+      .left {
+        position: relative;
+        flex: 1.1;
+      }
+      .brand {
+        display: flex;
+        align-items: baseline;
+        gap: 18px;
+      }
+      .logo {
+        font-size: 72px;
+        font-weight: 800;
+        letter-spacing: -2px;
+        white-space: nowrap;
+        background: linear-gradient(90deg, #60a5fa, #818cf8);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+      .domain {
+        font-size: 26px;
+        color: #71717a;
+        font-weight: 600;
+      }
+      .tagline {
+        margin-top: 22px;
+        font-size: 36px;
+        white-space: nowrap;
+        font-weight: 700;
+        line-height: 1.35;
+      }
+      .tagline .accent {
+        color: #60a5fa;
+      }
+      .chips {
+        margin-top: 34px;
+        display: flex;
+        gap: 14px;
+      }
+      .chip {
+        font-size: 18px;
+        font-weight: 600;
+        color: #d4d4d8;
+        white-space: nowrap;
+        border: 1.5px solid #3f3f46;
+        border-radius: 999px;
+        padding: 9px 18px;
+        background: rgba(39, 39, 42, 0.6);
+      }
+      .right {
+        position: relative;
+        flex: 0 0 420px;
+      }
+      .editor {
+        background: #1e1e1e;
+        border: 1px solid #3f3f46;
+        border-radius: 16px;
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+        overflow: hidden;
+      }
+      .editor-bar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: #18181b;
+        padding: 13px 16px;
+        border-bottom: 1px solid #303036;
+      }
+      .dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+      }
+      .editor-title {
+        margin-left: 8px;
+        font-size: 14px;
+        color: #71717a;
+        font-family: Menlo, monospace;
+      }
+      .code {
+        font-family: Menlo, Consolas, monospace;
+        font-size: 19px;
+        line-height: 1.75;
+        padding: 22px 24px;
+        white-space: pre;
+      }
+      .ln {
+        color: #52525b;
+        display: inline-block;
+        width: 30px;
+      }
+      .kw {
+        color: #569cd6;
+      }
+      .fn {
+        color: #dcdcaa;
+      }
+      .ty {
+        color: #4ec9b0;
+      }
+      .st {
+        color: #ce9178;
+      }
+      .pl {
+        color: #d4d4d4;
+      }
+      .result {
+        margin: 0 18px 18px;
+        padding: 13px 18px;
+        background: rgba(20, 83, 45, 0.45);
+        border: 1px solid rgba(34, 197, 94, 0.5);
+        border-radius: 10px;
+        color: #86efac;
+        font-size: 15.5px;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="left">
+      <div class="brand">
+        <div class="logo">ts-tonari</div>
+        <div class="domain">ts-tonari.app</div>
+      </div>
+      <div class="tagline">
+        日本語で学ぶ<br /><span class="accent">インタラクティブ</span> TypeScript
+      </div>
+      <div class="chips">
+        <div class="chip">31レッスン無料</div>
+        <div class="chip">ブラウザだけで完結</div>
+        <div class="chip">型チェック × 自動採点</div>
+      </div>
+    </div>
+    <div class="right">
+      <div class="editor">
+        <div class="editor-bar">
+          <div class="dot" style="background: #ff5f57"></div>
+          <div class="dot" style="background: #febc2e"></div>
+          <div class="dot" style="background: #28c840"></div>
+          <div class="editor-title">lesson-001.ts</div>
+        </div>
+        <div class="code">
+          <span class="ln">1</span><span class="kw">function</span> <span class="fn">greet</span
+          ><span class="pl">(name: </span><span class="ty">string</span><span class="pl">) {</span>
+          <span class="ln">2</span><span class="pl"> </span><span class="kw">return</span>
+          <span class="st">"こんにちは、"</span><span class="pl"> + name</span>
+          <span class="ln">3</span><span class="pl">}</span>
+        </div>
+        <div class="result">✓ 正解！テストケースをすべてパスしました</div>
+      </div>
+    </div>
+  </body>
+</html>

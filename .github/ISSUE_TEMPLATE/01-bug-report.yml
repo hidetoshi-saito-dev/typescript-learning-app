@@ -1,0 +1,38 @@
+name: 🐛 不具合報告
+description: 動作がおかしい・エラーが出る等の報告
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: 何が起きましたか？
+      description: 起きたことと、期待していた動作を教えてください
+      placeholder: 「答え合わせ」を押しても反応がない 等
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 再現手順
+      placeholder: |
+        1. レッスン 016 を開く
+        2. 〜のコードを入力する
+        3. 「答え合わせ」を押す
+    validations:
+      required: true
+  - type: input
+    id: lesson
+    attributes:
+      label: レッスンID（あれば）
+      placeholder: 016-keyof
+  - type: input
+    id: environment
+    attributes:
+      label: 環境
+      description: OS / ブラウザ / ログイン有無
+      placeholder: macOS / Chrome 137 / ゲスト
+  - type: textarea
+    id: extra
+    attributes:
+      label: 補足（スクリーンショット等）

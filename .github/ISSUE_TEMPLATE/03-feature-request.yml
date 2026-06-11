@@ -1,0 +1,17 @@
+name: 💡 機能要望
+description: 新しいレッスン・機能のアイデア
+title: "[Feature] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 提案内容
+      description: どんな機能・レッスンがあると嬉しいですか？
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: 背景・困りごと
+      description: その機能が欲しい理由や、現状で困っていること

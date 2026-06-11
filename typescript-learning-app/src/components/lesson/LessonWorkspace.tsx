@@ -20,6 +20,8 @@ type JudgePhase =
 type WorkspaceState = {
   code: string
   diagnostics: TypeScriptDiagnostic[]
+  /** TS ワーカーから初回の診断が届いたか（届くまでパネルは「準備中」表示） */
+  diagnosticsReady: boolean
   judgePhase: JudgePhase
 }
 
@@ -34,7 +36,7 @@ function reducer(state: WorkspaceState, action: Action): WorkspaceState {
     case 'CODE_CHANGE':
       return { ...state, code: action.code, judgePhase: { phase: 'idle' } }
     case 'DIAGNOSTICS_UPDATE':
-      return { ...state, diagnostics: action.diagnostics }
+      return { ...state, diagnostics: action.diagnostics, diagnosticsReady: true }
     case 'JUDGE_START':
       return { ...state, judgePhase: { phase: 'judging' } }
     case 'JUDGE_DONE':
@@ -55,6 +57,7 @@ export function LessonWorkspace({ lesson, prevLesson, nextLesson, isGuest = true
   const [state, dispatch] = useReducer(reducer, {
     code: lesson.initialCode,
     diagnostics: [],
+    diagnosticsReady: false,
     judgePhase: { phase: 'idle' },
   })
 
@@ -120,18 +123,28 @@ export function LessonWorkspace({ lesson, prevLesson, nextLesson, isGuest = true
       <header className="flex h-11 shrink-0 items-center gap-2 border-b border-zinc-800 bg-zinc-900 px-5">
         <Link
           href="/"
-          className="text-xs font-medium text-zinc-500 transition-colors hover:text-zinc-300"
+          className="text-xs font-medium text-zinc-400 transition-colors hover:text-zinc-200"
         >
           ← 一覧
         </Link>
-        <span className="text-xs text-zinc-700">›</span>
+        <span aria-hidden="true" className="text-xs text-zinc-600">
+          ›
+        </span>
         <span className="text-sm font-semibold text-zinc-100">{lesson.title}</span>
+        <a
+          href={`https://github.com/hidetoshi-saito-dev/typescript-learning-app/issues/new?template=02-lesson-feedback.yml&lesson=${lesson.id}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="ml-auto text-xs text-zinc-400 transition-colors hover:text-zinc-200"
+        >
+          問題を報告
+        </a>
       </header>
 
       {/* 本体: 左右パネル */}
-      <div className="flex flex-1 overflow-hidden">
+      <main className="flex flex-1 overflow-hidden">
         {/* 左: 問題文 */}
-        <aside className="min-w-0 flex-1 overflow-y-auto bg-white">
+        <aside aria-label="問題文" className="min-w-0 flex-1 overflow-y-auto bg-white">
           <ProblemPane
             lessonNumber={lessonNumber}
             title={lesson.title}
@@ -145,7 +158,10 @@ export function LessonWorkspace({ lesson, prevLesson, nextLesson, isGuest = true
         <div className="w-px shrink-0 bg-zinc-700/50" />
 
         {/* 右: エディタ + 判定 */}
-        <div className="flex min-w-0 flex-1 flex-col bg-[#1e1e1e]">
+        <section
+          aria-label="コードエディタと判定"
+          className="flex min-w-0 flex-1 flex-col bg-[#1e1e1e]"
+        >
           {/* Monaco エディタ（残りの高さを全部使う） */}
           <div className="flex-1 overflow-hidden">
             <CodeEditor
@@ -155,13 +171,17 @@ export function LessonWorkspace({ lesson, prevLesson, nextLesson, isGuest = true
             />
           </div>
 
-          {/* 型エラーパネル */}
-          <ErrorPanel diagnostics={state.diagnostics} />
+          {/* 型エラーパネル（常設: 挿入時のレイアウトシフトを防ぐ） */}
+          <ErrorPanel diagnostics={state.diagnostics} ready={state.diagnosticsReady} />
 
           {/* 答え合わせエリア */}
           <div className="border-t border-zinc-700/50 px-4 py-4">
             <JudgeButton onClick={handleJudge} disabled={hasErrors} loading={isJudging} />
-            {state.judgePhase.phase === 'done' && <JudgeResult result={state.judgePhase.result} />}
+            <div role="status" aria-live="polite">
+              {state.judgePhase.phase === 'done' && (
+                <JudgeResult result={state.judgePhase.result} />
+              )}
+            </div>
 
             {/* prev / next ナビゲーション */}
             <div className="mt-4 flex items-center justify-between">
@@ -191,8 +211,8 @@ export function LessonWorkspace({ lesson, prevLesson, nextLesson, isGuest = true
               )}
             </div>
           </div>
-        </div>
-      </div>
+        </section>
+      </main>
     </div>
   )
 }

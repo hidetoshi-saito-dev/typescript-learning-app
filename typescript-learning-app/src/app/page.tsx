@@ -52,11 +52,34 @@ export default async function Home({ searchParams }: Props) {
 
         {/* レッスン一覧（進捗バッジ付き）*/}
         <section>
-          <h2 className="mb-4 text-xs font-semibold uppercase tracking-wider text-zinc-400">
+          <h2 className="mb-4 text-xs font-semibold uppercase tracking-wider text-zinc-500">
             レッスン一覧
           </h2>
           <LessonList lessons={lessons} serverCompleted={serverCompleted} />
         </section>
+
+        {/* フッター: フィードバック導線 */}
+        <footer className="border-t border-zinc-200 pt-6 text-center text-xs text-zinc-500">
+          <nav aria-label="サイト情報" className="flex items-center justify-center gap-5">
+            <a
+              href="https://github.com/hidetoshi-saito-dev/typescript-learning-app"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="transition-colors hover:text-zinc-800"
+            >
+              GitHub
+            </a>
+            <a
+              href="https://github.com/hidetoshi-saito-dev/typescript-learning-app/issues/new/choose"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="transition-colors hover:text-zinc-800"
+            >
+              フィードバック・不具合報告
+            </a>
+          </nav>
+          <p className="mt-3 text-zinc-500">ts-tonari — MIT License</p>
+        </footer>
       </main>
     </div>
   )

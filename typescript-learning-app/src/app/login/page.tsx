@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
@@ -6,6 +7,12 @@ import { safeRedirectPath } from '@/lib/auth/safe-redirect'
 
 type Props = {
   searchParams: Promise<{ redirect?: string; error?: string }>
+}
+
+// redirect パラメータ付き URL が乱立して索引されないよう noindex（リンク追跡は許可）
+export const metadata: Metadata = {
+  title: 'ログイン',
+  robots: { index: false, follow: true },
 }
 
 export default async function LoginPage({ searchParams }: Props) {
@@ -40,13 +47,13 @@ export default async function LoginPage({ searchParams }: Props) {
 
           <LoginButtons redirectTo={redirectTo} />
 
-          <p className="mt-6 text-center text-xs text-zinc-400">
+          <p className="mt-6 text-center text-xs text-zinc-500">
             ログインすることで、学習進捗がクラウドに保存されます
           </p>
         </div>
 
         <div className="mt-6 text-center">
-          <Link href="/" className="text-sm text-zinc-400 hover:text-zinc-600 transition-colors">
+          <Link href="/" className="text-sm text-zinc-500 hover:text-zinc-700 transition-colors">
             ← ホームに戻る
           </Link>
         </div>
