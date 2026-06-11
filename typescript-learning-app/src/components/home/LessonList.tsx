@@ -4,10 +4,17 @@ import Link from 'next/link'
 import { useMemo, useSyncExternalStore } from 'react'
 import { useHasHydrated } from '@/lib/hooks/use-hydrated'
 import { getGuestServerSnapshot, getGuestSnapshot, subscribeGuest } from '@/lib/progress/guest'
-import type { Lesson } from '@/types'
+import { LEVEL_LABELS, LEVEL_ORDER, type LessonLevel } from '@/lib/lessons/level'
+
+// ホーム一覧に必要な最小限のみ（Lesson 全体を受けると本文・判定までクライアントに乗る）
+export type LessonListItem = {
+  id: string
+  title: string
+  level: LessonLevel
+}
 
 type Props = {
-  lessons: Lesson[]
+  lessons: LessonListItem[]
   serverCompleted?: string[]
 }
 
@@ -96,67 +103,92 @@ export function LessonList({ lessons, serverCompleted }: Props) {
         )}
       </div>
 
-      {/* レッスン一覧 */}
-      <ul className="flex flex-col gap-2">
-        {lessons.map((lesson, i) => {
-          const isDone = isReady && completed.has(lesson.id)
-          const isNext = isReady && i === nextIndex && !allDone
-          const num = parseInt(lesson.id.split('-')[0], 10)
+      {/* レッスン一覧（レベル別セクション） */}
+      {LEVEL_ORDER.map((level) => {
+        const sectionLessons = lessons.filter((l) => l.level === level)
+        if (sectionLessons.length === 0) return null
+        const sectionDone = sectionLessons.filter((l) => completed.has(l.id)).length
+        const sectionAllDone = isReady && sectionDone === sectionLessons.length
 
-          return (
-            <li key={lesson.id}>
-              <Link
-                href={`/lessons/${lesson.id}`}
-                className={`group flex items-center gap-4 rounded-xl border p-4 transition-all duration-150 ${
-                  isDone
-                    ? 'border-green-200 bg-green-50 hover:border-green-300 hover:bg-green-100/70'
-                    : isNext
-                      ? 'border-blue-200 bg-blue-50 shadow-sm shadow-blue-100/60 hover:border-blue-300 hover:bg-blue-100/70'
-                      : 'border-zinc-200 bg-white hover:border-zinc-300 hover:bg-zinc-50'
+        return (
+          <section key={level} aria-label={LEVEL_LABELS[level]}>
+            <div className="mb-2 flex items-baseline justify-between px-1">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+                {LEVEL_LABELS[level]}
+              </h3>
+              <span
+                className={`text-xs font-medium tabular-nums ${
+                  sectionAllDone ? 'text-green-700' : 'text-zinc-500'
                 }`}
               >
-                {/* 番号 / チェックバッジ */}
-                <div
-                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold transition-colors ${
-                    isDone
-                      ? 'bg-green-600 text-white'
-                      : isNext
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-zinc-100 text-zinc-600 group-hover:bg-zinc-200'
-                  }`}
-                >
-                  {isDone ? <CheckIcon /> : num}
-                </div>
+                {sectionAllDone ? '✓ ' : ''}
+                {isReady ? sectionDone : '–'} / {sectionLessons.length}
+              </span>
+            </div>
+            <ul className="flex flex-col gap-2">
+              {sectionLessons.map((lesson) => {
+                const i = lessons.indexOf(lesson)
+                const isDone = isReady && completed.has(lesson.id)
+                const isNext = isReady && i === nextIndex && !allDone
+                const num = parseInt(lesson.id.split('-')[0], 10)
 
-                {/* タイトル */}
-                <span
-                  className={`flex-1 font-medium ${
-                    isDone ? 'text-green-800' : isNext ? 'text-blue-900' : 'text-zinc-800'
-                  }`}
-                >
-                  {lesson.title}
-                </span>
+                return (
+                  <li key={lesson.id}>
+                    <Link
+                      href={`/lessons/${lesson.id}`}
+                      className={`group flex items-center gap-4 rounded-xl border p-4 transition-all duration-150 ${
+                        isDone
+                          ? 'border-green-200 bg-green-50 hover:border-green-300 hover:bg-green-100/70'
+                          : isNext
+                            ? 'border-blue-200 bg-blue-50 shadow-sm shadow-blue-100/60 hover:border-blue-300 hover:bg-blue-100/70'
+                            : 'border-zinc-200 bg-white hover:border-zinc-300 hover:bg-zinc-50'
+                      }`}
+                    >
+                      {/* 番号 / チェックバッジ */}
+                      <div
+                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold transition-colors ${
+                          isDone
+                            ? 'bg-green-600 text-white'
+                            : isNext
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-zinc-100 text-zinc-600 group-hover:bg-zinc-200'
+                        }`}
+                      >
+                        {isDone ? <CheckIcon /> : num}
+                      </div>
 
-                {/* ステータスラベル */}
-                {isDone ? (
-                  <span className="shrink-0 text-xs font-semibold text-green-700">完了</span>
-                ) : isNext ? (
-                  <span className="shrink-0 rounded-full bg-blue-600 px-3 py-1 text-xs font-semibold text-white">
-                    開始 →
-                  </span>
-                ) : (
-                  <span
-                    aria-hidden="true"
-                    className="shrink-0 text-sm text-zinc-400 transition-colors group-hover:text-zinc-500"
-                  >
-                    →
-                  </span>
-                )}
-              </Link>
-            </li>
-          )
-        })}
-      </ul>
+                      {/* タイトル */}
+                      <span
+                        className={`flex-1 font-medium ${
+                          isDone ? 'text-green-800' : isNext ? 'text-blue-900' : 'text-zinc-800'
+                        }`}
+                      >
+                        {lesson.title}
+                      </span>
+
+                      {/* ステータスラベル */}
+                      {isDone ? (
+                        <span className="shrink-0 text-xs font-semibold text-green-700">完了</span>
+                      ) : isNext ? (
+                        <span className="shrink-0 rounded-full bg-blue-600 px-3 py-1 text-xs font-semibold text-white">
+                          開始 →
+                        </span>
+                      ) : (
+                        <span
+                          aria-hidden="true"
+                          className="shrink-0 text-sm text-zinc-400 transition-colors group-hover:text-zinc-500"
+                        >
+                          →
+                        </span>
+                      )}
+                    </Link>
+                  </li>
+                )
+              })}
+            </ul>
+          </section>
+        )
+      })}
     </div>
   )
 }

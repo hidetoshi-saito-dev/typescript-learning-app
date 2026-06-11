@@ -1,4 +1,5 @@
 import { getCatalogList } from '@/lib/lessons/catalog'
+import { getLessonLevel } from '@/lib/lessons/level'
 import { getServerCompletedLessons } from '@/lib/progress/actions'
 import { LessonList } from '@/components/home/LessonList'
 import { UserMenu } from '@/components/auth/UserMenu'
@@ -16,7 +17,13 @@ export default async function Home({ searchParams }: Props) {
   if (code) {
     redirect(`/auth/callback?code=${code}`)
   }
-  const lessons = getCatalogList()
+  // クライアントに渡すのは一覧表示に必要な最小限のみ
+  // （Lesson 全体を渡すと initialCode・判定アサーションまで RSC ペイロードに乗る）
+  const lessons = getCatalogList().map((l) => ({
+    id: l.id,
+    title: l.title,
+    level: getLessonLevel(l.id),
+  }))
 
   const supabase = await createClient()
   const {
