@@ -122,6 +122,14 @@ export function CodeEditor({ initialCode, onChange, onDiagnosticsChange }: Props
       defaultLanguage="typescript"
       defaultValue={initialCode}
       theme="vs-dark"
+      loading={
+        <div
+          role="status"
+          className="flex h-full w-full items-center justify-center bg-[#1e1e1e] text-sm text-zinc-500"
+        >
+          エディタを読み込み中…
+        </div>
+      }
       onChange={handleChange}
       onMount={handleMount}
       options={{

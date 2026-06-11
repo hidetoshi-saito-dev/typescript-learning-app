@@ -93,11 +93,14 @@ export function ProblemPane({ lessonNumber, title, description, challenge, hint 
           <button
             type="button"
             onClick={() => setHintOpen((v) => !v)}
-            className="flex items-center gap-2 text-sm font-medium text-amber-600 transition-colors hover:text-amber-700"
+            aria-expanded={hintOpen}
+            aria-controls="lesson-hint"
+            className="flex items-center gap-2 text-sm font-medium text-amber-700 transition-colors hover:text-amber-800"
           >
-            <span>💡</span>
+            <span aria-hidden="true">💡</span>
             {hintOpen ? 'ヒントを隠す' : 'ヒントを見る'}
             <span
+              aria-hidden="true"
               className={`text-xs transition-transform duration-200 ${hintOpen ? 'rotate-180' : ''}`}
             >
               ▾
@@ -105,7 +108,10 @@ export function ProblemPane({ lessonNumber, title, description, challenge, hint 
           </button>
 
           {hintOpen && (
-            <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
+            <div
+              id="lesson-hint"
+              className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-4"
+            >
               {hint.split('\n\n').map((part, i) =>
                 /^(function|const|let|var|type|interface|class|enum)\b/.test(part) ? (
                   <pre

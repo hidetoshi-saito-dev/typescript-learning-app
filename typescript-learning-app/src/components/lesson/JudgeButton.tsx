@@ -13,7 +13,7 @@ export function JudgeButton({ onClick, disabled, loading }: Props) {
       className={`w-full rounded-lg px-6 py-2.5 text-sm font-semibold transition-all duration-150 ${
         disabled || loading
           ? 'cursor-not-allowed bg-zinc-700 text-zinc-400'
-          : 'bg-blue-500 text-white shadow-sm shadow-blue-500/30 hover:bg-blue-400 active:scale-[0.99]'
+          : 'bg-blue-600 text-white shadow-sm shadow-blue-600/30 hover:bg-blue-500 active:scale-[0.99]'
       }`}
     >
       {loading ? '判定中...' : disabled ? '型エラーを修正してください' : '答え合わせ'}

@@ -55,10 +55,10 @@ export function LessonList({ lessons, serverCompleted }: Props) {
       <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
         <div className="mb-4 flex items-start justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-zinc-400">学習進捗</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">学習進捗</p>
             <p className="mt-1 text-2xl font-bold tabular-nums text-zinc-900">
               {isReady ? completedCount : '–'}
-              <span className="text-base font-normal text-zinc-400"> / {totalCount}</span>
+              <span className="text-base font-normal text-zinc-500"> / {totalCount}</span>
             </p>
           </div>
           {allDone ? (
@@ -68,13 +68,20 @@ export function LessonList({ lessons, serverCompleted }: Props) {
           ) : (
             isReady &&
             progressPct > 0 && (
-              <span className="text-sm font-bold tabular-nums text-blue-500">{progressPct}%</span>
+              <span className="text-sm font-bold tabular-nums text-blue-600">{progressPct}%</span>
             )
           )}
         </div>
 
         {/* プログレスバー */}
-        <div className="h-2 w-full overflow-hidden rounded-full bg-zinc-100">
+        <div
+          role="progressbar"
+          aria-label="学習進捗"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={isReady ? progressPct : 0}
+          className="h-2 w-full overflow-hidden rounded-full bg-zinc-100"
+        >
           <div
             className="h-full rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-700 ease-out"
             style={{ width: `${isReady ? progressPct : 0}%` }}
@@ -82,7 +89,7 @@ export function LessonList({ lessons, serverCompleted }: Props) {
         </div>
 
         {isReady && !allDone && nextIndex >= 0 && (
-          <p className="mt-3 text-xs text-zinc-400">
+          <p className="mt-3 text-xs text-zinc-500">
             次のレッスン:{' '}
             <span className="font-medium text-zinc-600">{lessons[nextIndex].title}</span>
           </p>
@@ -112,10 +119,10 @@ export function LessonList({ lessons, serverCompleted }: Props) {
                 <div
                   className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold transition-colors ${
                     isDone
-                      ? 'bg-green-500 text-white'
+                      ? 'bg-green-600 text-white'
                       : isNext
-                        ? 'bg-blue-500 text-white'
-                        : 'bg-zinc-100 text-zinc-500 group-hover:bg-zinc-200'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-zinc-100 text-zinc-600 group-hover:bg-zinc-200'
                   }`}
                 >
                   {isDone ? <CheckIcon /> : num}
@@ -132,13 +139,16 @@ export function LessonList({ lessons, serverCompleted }: Props) {
 
                 {/* ステータスラベル */}
                 {isDone ? (
-                  <span className="shrink-0 text-xs font-semibold text-green-600">完了</span>
+                  <span className="shrink-0 text-xs font-semibold text-green-700">完了</span>
                 ) : isNext ? (
-                  <span className="shrink-0 rounded-full bg-blue-500 px-3 py-1 text-xs font-semibold text-white">
+                  <span className="shrink-0 rounded-full bg-blue-600 px-3 py-1 text-xs font-semibold text-white">
                     開始 →
                   </span>
                 ) : (
-                  <span className="shrink-0 text-sm text-zinc-300 transition-colors group-hover:text-zinc-400">
+                  <span
+                    aria-hidden="true"
+                    className="shrink-0 text-sm text-zinc-400 transition-colors group-hover:text-zinc-500"
+                  >
                     →
                   </span>
                 )}
