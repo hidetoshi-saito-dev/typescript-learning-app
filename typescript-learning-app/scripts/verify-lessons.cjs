@@ -37,16 +37,72 @@ function loadLesson(file) {
 }
 
 /**
- * judge.worker.ts の sanitizeForChecks をミラー。
- * コメント除去（structure/noComments 共通）＋文字列中身ブランク（structure のみ）。
+ * src/lib/judge/sanitize.ts の sanitizeForChecks をミラー（変更時は必ず両方を同期すること）。
+ * コメント除去（structure/noComments 共通）＋文字列/テンプレート/正規表現の中身ブランク（structure のみ）。
+ * テンプレート置換・正規表現リテラルのバイパス封鎖は 2026-06-11 追補（正本ドキュメント参照）。
  */
+const DIVISION_PRECEDING_TOKENS = new Set([
+  ts.SyntaxKind.Identifier,
+  ts.SyntaxKind.NumericLiteral,
+  ts.SyntaxKind.BigIntLiteral,
+  ts.SyntaxKind.StringLiteral,
+  ts.SyntaxKind.NoSubstitutionTemplateLiteral,
+  ts.SyntaxKind.TemplateTail,
+  ts.SyntaxKind.RegularExpressionLiteral,
+  ts.SyntaxKind.ThisKeyword,
+  ts.SyntaxKind.TrueKeyword,
+  ts.SyntaxKind.FalseKeyword,
+  ts.SyntaxKind.NullKeyword,
+  ts.SyntaxKind.SuperKeyword,
+  ts.SyntaxKind.CloseParenToken,
+  ts.SyntaxKind.CloseBracketToken,
+  ts.SyntaxKind.PlusPlusToken,
+  ts.SyntaxKind.MinusMinusToken,
+])
+
 function sanitizeForChecks(source) {
-  const scanner = ts.createScanner(ts.ScriptTarget.Latest, false, ts.LanguageVariant.Standard, source)
+  const scanner = ts.createScanner(
+    ts.ScriptTarget.Latest,
+    false,
+    ts.LanguageVariant.Standard,
+    source,
+  )
   const blank = (s) => s.replace(/[^\r\n]/g, ' ')
+  const blankInside = (text, startLen, endLen) =>
+    text.length < startLen + endLen
+      ? text
+      : text.slice(0, startLen) +
+        blank(text.slice(startLen, text.length - endLen)) +
+        text.slice(text.length - endLen)
   let structure = ''
   let noComments = ''
+  let lastSignificant = ts.SyntaxKind.Unknown
+  // 置換付きテンプレートの文脈スタック（各要素＝置換式内の { } ネスト深さ）。
+  // 置換を閉じる } は reScanTemplateToken で TemplateMiddle/Tail に再解釈する必要がある。
+  const templateBraceDepth = []
   let token = scanner.scan()
   while (token !== ts.SyntaxKind.EndOfFileToken) {
+    if (
+      (token === ts.SyntaxKind.SlashToken || token === ts.SyntaxKind.SlashEqualsToken) &&
+      !DIVISION_PRECEDING_TOKENS.has(lastSignificant)
+    ) {
+      token = scanner.reScanSlashToken()
+    }
+    if (token === ts.SyntaxKind.CloseBraceToken && templateBraceDepth.length > 0) {
+      const last = templateBraceDepth.length - 1
+      if (templateBraceDepth[last] === 0) {
+        token = scanner.reScanTemplateToken(false)
+        if (token === ts.SyntaxKind.TemplateTail) {
+          templateBraceDepth.pop()
+        }
+      } else {
+        templateBraceDepth[last]--
+      }
+    } else if (token === ts.SyntaxKind.OpenBraceToken && templateBraceDepth.length > 0) {
+      templateBraceDepth[templateBraceDepth.length - 1]++
+    } else if (token === ts.SyntaxKind.TemplateHead) {
+      templateBraceDepth.push(0)
+    }
     const text = scanner.getTokenText()
     if (
       token === ts.SyntaxKind.SingleLineCommentTrivia ||
@@ -59,11 +115,29 @@ function sanitizeForChecks(source) {
       token === ts.SyntaxKind.StringLiteral ||
       token === ts.SyntaxKind.NoSubstitutionTemplateLiteral
     ) {
-      structure += text.length >= 2 ? text[0] + blank(text.slice(1, -1)) + text[text.length - 1] : text
+      structure += blankInside(text, 1, 1)
+      noComments += text
+    } else if (token === ts.SyntaxKind.RegularExpressionLiteral) {
+      structure += blankInside(text, 1, 1)
+      noComments += text
+    } else if (
+      token === ts.SyntaxKind.TemplateHead ||
+      token === ts.SyntaxKind.TemplateMiddle ||
+      token === ts.SyntaxKind.TemplateTail
+    ) {
+      structure += blankInside(text, 1, token === ts.SyntaxKind.TemplateTail ? 1 : 2)
       noComments += text
     } else {
       structure += text
       noComments += text
+    }
+    if (
+      token !== ts.SyntaxKind.WhitespaceTrivia &&
+      token !== ts.SyntaxKind.NewLineTrivia &&
+      token !== ts.SyntaxKind.SingleLineCommentTrivia &&
+      token !== ts.SyntaxKind.MultiLineCommentTrivia
+    ) {
+      lastSignificant = token
     }
     token = scanner.scan()
   }
@@ -196,6 +270,24 @@ const WRONG = [
     id: '009-literal-type',
     label: 'コメントバイパス',
     code: `function setAlignment(direction: "a" | "b") {\n  // "left" | "right" | "center"\n  return "align: " + direction\n}`,
+  },
+  // 016: 置換付きテンプレートにキーワードを置くチート（2026-06-11 封鎖）。
+  // TemplateHead/Middle/Tail は NoSubstitutionTemplateLiteral と別トークンのため、
+  // 旧実装では中身が structure に残り②を偽陽性で通過していた。
+  {
+    id: '016-keyof',
+    label: 'テンプレートバイパス',
+    // キーワードを中間チャンク（${}と${}の間）に置く: 素の scan() では TemplateMiddle が
+    // 出現せずコードトークンとして漏れるため、reScanTemplateToken 対応の回帰カナリアになる
+    code: 'const _hint = `${""}extends keyof T${""}`\nfunction getProperty(obj, key) {\n  return obj[key]\n}',
+  },
+  // 021: 正規表現リテラルにキーワードを置くチート（2026-06-11 封鎖）。
+  // 旧実装では / が SlashToken のまま正規表現として再スキャンされず、
+  // Partial が識別子トークンとして structure に残り②を偽陽性で通過していた。
+  {
+    id: '021-partial-required',
+    label: '正規表現バイパス',
+    code: `type User = { name: string; age: number }\n\nconst _re = /Partial<User/g\n\nfunction updateUser(user, patch) {\n  return { ...user, ...patch }\n}`,
   },
 ]
 
