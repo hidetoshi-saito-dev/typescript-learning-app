@@ -19,3 +19,10 @@ supabase/.temp
 
 # Claude project metadata
 .claude/
+
+# 仮想組織の内部運用ファイル（AI駆動開発の口語メモ・人格定義・組織ルール）。
+# ローカルでは利用するが公開リポジトリには含めない。
+# 公開する設計/意思決定ドキュメントは .company/engineering/docs・pm/projects・research・creative に残す。
+.company/CLAUDE.md
+.company/*/CLAUDE.md
+.company/secretary/
