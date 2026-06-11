@@ -15,6 +15,16 @@
 
 > 型エラーの検出 → 型注釈の追加 → 自動採点（正解判定）までの一連の流れ。実際に触れるライブ版 → **https://ts-tonari.app**
 
+## English summary
+
+**ts-tonari** (https://ts-tonari.app) is an interactive TypeScript learning web app for Japanese speakers. You write TypeScript in an in-browser Monaco editor and get instant type diagnostics (localized into Japanese) and automated grading — no local setup required. **31 original lessons** (beginner to intermediate) are live in production, and the first 3 lessons work without signing in.
+
+- **100% client-side code execution** — user code runs isolated in a Web Worker (5s timeout + `terminate()`), never on the server
+- **Hardened grading engine** — a lexical scanner strips comments/string literals before type-syntax checks, blocking "keyword-in-a-comment" cheating
+- **Auth & progress tracking** — GitHub / Google OAuth via Supabase (Postgres + Row Level Security)
+- **Security** — enforced CSP, security headers, open-redirect protection, self-hosted Monaco (no CDN dependency)
+- **Stack** — Next.js 16 (App Router) · React 19 · TypeScript strict · Tailwind CSS · Supabase · Vercel (custom domain)
+
 ## 主な機能
 
 - **ブラウザ内エディタ**（Monaco）でコードを書き、リアルタイムに型診断（エラーメッセージを日本語化）
