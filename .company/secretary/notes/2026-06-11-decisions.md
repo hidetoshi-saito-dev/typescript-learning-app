@@ -41,3 +41,17 @@ dev で目視、全項目パス:
 ### 関連
 - 正本: `.company/engineering/docs/2026-06-09-judge-false-positive.md`
 - 前日の意思決定: `.company/secretary/notes/2026-06-10-decisions.md`
+
+## ② Monaco セルフホスト化 — 実装・本番反映（PR #4・同日 2026-06-11）✅
+
+### 内容
+セキュリティ残課題②を解消。`monaco-editor`(0.55.1)を明示依存化＋`scripts/copy-monaco.cjs`が`min/vs`を`public/monaco/vs`へコピー（predev/prebuild/postinstall・版marker冪等・gitignore・eslint ignore）。`CodeEditor.tsx`で`loader.config({paths:{vs:'/monaco/vs'}})`。CSPから`cdn.jsdelivr.net`を全ディレクティブ削除。
+- 検証: tsc/lint/build PASS・dev/本番で`/monaco/vs/loader.js`が200・本番CSPヘッダにjsdelivrなしを確認。ブラウザ実機でエディタ/診断/判定OK。
+- PR #4 マージ（merge `b28d264`・Vercel deploy success）。**これで /security-review 指摘5件すべてクローズ**。
+
+### 罠の学び：dev「表示が数分」はMonaco無関係＝ローカルSupabase未起動
+self-host検証中に「表示まで数分」が発生。ユーザー報告を鵜呑みにせず dev.log を実測した結果、原因は**ローカルSupabase(:54321)未起動**と確定:
+- `GET /lessons/001 200 in 51s（proxy.ts:25.7s / application-code:25.6s）`＝サーバ側。ECONNREFUSED(54321) 408件。
+- middleware(`src/proxy.ts`)＋lessonページのサーバコンポーネントが両方Supabase認証を呼び、コールド初回に各約25秒リトライ→計51秒。2回目以降は短絡し0.1秒。
+- Monaco配信自体はms（editor.main.js 19ms）。**本番はSupabase到達可能なので発生しない**。ローカル高速化は`supabase start`。
+- 教訓: 体感の遅さを犯人(直近の変更)に短絡せず、ログで切り分ける。「機能OK＝解決」ではないのと同様に「遅い＝直近変更が原因」とも限らない。
