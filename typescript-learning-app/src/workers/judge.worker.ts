@@ -11,17 +11,17 @@
 // 【重要】各ケースを必ず `await` すること。await し損ねると、失敗すべき assertion の reject が
 // try/catch をすり抜けて誤って「正解」判定になる（偽陽性）。
 //
-// 【なぜ __originalCode__ を字句サニタイズするか（2026-06-09 偽陽性修正）】
+// 【なぜ __originalCode__ を字句サニタイズするか（2026-06-09 偽陽性修正・2026-06-11 追補）】
 // レッスンの②型構文チェックは __originalCode__（ユーザーソース）に対する正規表現で
 // 「型キーワードを書いたか」を判定する。生ソースをそのまま渡すと、学習者が型を一切書かず
-// `// extends keyof T` のようにコメント（や文字列リテラル）へキーワードを置くだけで一致し、
-// 偽陽性（チート合格）になる。そこで「コードとしての構造」だけを検査対象にするため、
-// TypeScript の字句スキャナでコメントを除去し、文字列の中身を空にした文字列を注入する。
-//   - __originalCode__ : コメント除去＋文字列中身ブランク（型キーワード系②向け）
-//   - __rawCode__      : コメント除去のみ・文字列は保持（リテラル値を検査するレッスン向け）
-// どちらもコメントは除去済み＝コメントに書いた文字列でのバイパスを全レッスンで封鎖する。
+// コメント・文字列・置換付きテンプレート・正規表現リテラルへキーワードを置くだけで一致し、
+// 偽陽性（チート合格）になる。そこで「コードとしての構造」だけを検査対象にする:
+//   - __originalCode__ : コメント除去＋文字列/テンプレート/正規表現の中身ブランク（型キーワード系②向け）
+//   - __rawCode__      : コメント除去のみ・リテラルは保持（リテラル値を検査するレッスン向け）
+// サニタイズ実装は src/lib/judge/sanitize.ts（ユニットテストで境界を固定）。
 
 import ts from 'typescript'
+import { sanitizeForChecks } from '@/lib/judge/sanitize'
 import type { TestCase, WorkerResult } from '@/types'
 
 type WorkerInput = {
@@ -32,52 +32,6 @@ type WorkerInput = {
 // async 関数のコンストラクタ。`AsyncFunction(body)` は実行時に async 関数を生成する。
 // グローバルには公開されていないため async 関数のプロトタイプ経由で取得する。
 const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor as FunctionConstructor
-
-/**
- * 構造チェック用にユーザーコードをサニタイズする。
- * TypeScript の字句スキャナでトークン分割し、コメントと文字列/テンプレートの「中身」を
- * 取り除く（区切り記号・コード構造・改行は保持）。
- * @returns structure（コメント除去＋文字列中身ブランク）と noComments（コメント除去のみ）
- */
-function sanitizeForChecks(source: string): { structure: string; noComments: string } {
-  const scanner = ts.createScanner(
-    ts.ScriptTarget.Latest,
-    /* skipTrivia */ false,
-    ts.LanguageVariant.Standard,
-    source,
-  )
-  // 改行は残し、それ以外の文字を空白に置き換える（エラー行番号をなるべく保つため）
-  const blank = (s: string) => s.replace(/[^\r\n]/g, ' ')
-  let structure = ''
-  let noComments = ''
-  let token = scanner.scan()
-  while (token !== ts.SyntaxKind.EndOfFileToken) {
-    const text = scanner.getTokenText()
-    if (
-      token === ts.SyntaxKind.SingleLineCommentTrivia ||
-      token === ts.SyntaxKind.MultiLineCommentTrivia
-    ) {
-      const blanked = blank(text)
-      structure += blanked
-      noComments += blanked
-    } else if (
-      token === ts.SyntaxKind.StringLiteral ||
-      token === ts.SyntaxKind.NoSubstitutionTemplateLiteral
-    ) {
-      // 区切り記号（引用符/バッククォート）だけ残し、中身を空白化
-      structure +=
-        text.length >= 2
-          ? text[0] + blank(text.slice(1, -1)) + text[text.length - 1]
-          : text
-      noComments += text // リテラル値を検査するレッスン用に中身を保持
-    } else {
-      structure += text
-      noComments += text
-    }
-    token = scanner.scan()
-  }
-  return { structure, noComments }
-}
 
 self.addEventListener('message', async (event: MessageEvent<WorkerInput>) => {
   const { code, testCases } = event.data
