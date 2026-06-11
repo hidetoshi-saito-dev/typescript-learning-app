@@ -30,6 +30,14 @@ import { lesson as lesson028 } from './data/028-type-predicate'
 import { lesson as lesson029 } from './data/029-function-type'
 import { lesson as lesson030 } from './data/030-promise'
 import { lesson as lesson031 } from './data/031-awaited-async'
+import { lesson as lesson032 } from './data/032-conditional-type'
+import { lesson as lesson033 } from './data/033-distributive-conditional'
+import { lesson as lesson034 } from './data/034-infer-return'
+import { lesson as lesson035 } from './data/035-infer-element'
+import { lesson as lesson036 } from './data/036-template-literal-type'
+import { lesson as lesson037 } from './data/037-template-literal-union'
+import { lesson as lesson038 } from './data/038-satisfies'
+import { lesson as lesson039 } from './data/039-event-name'
 
 const LESSONS: Lesson[] = [
   lesson001,
@@ -63,6 +71,14 @@ const LESSONS: Lesson[] = [
   lesson029,
   lesson030,
   lesson031,
+  lesson032,
+  lesson033,
+  lesson034,
+  lesson035,
+  lesson036,
+  lesson037,
+  lesson038,
+  lesson039,
 ]
 
 const catalog = new Map(LESSONS.map((l) => [l.id, l]))

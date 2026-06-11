@@ -208,6 +208,18 @@ const SOLUTIONS = {
   '029-function-type': `type Mapper = (n: number) => number\n\nfunction mapNumbers(numbers: number[], fn: Mapper): number[] {\n  return numbers.map(fn)\n}`,
   '030-promise': `function delay(ms: number, value: string): Promise<string> {\n  return new Promise((resolve) => setTimeout(() => resolve(value), ms))\n}`,
   '031-awaited-async': `async function fetchName(): Promise<string> {\n  return "Alice"\n}\n\nasync function greet(): Promise<string> {\n  const name = await fetchName()\n  return "こんにちは、" + name\n}`,
+  // 上級（032-039）
+  '032-conditional-type': `type IsString<T> = T extends string ? true : false\n\nconst a: IsString<string> = true\nconst b: IsString<number> = false\nconst c: IsString<"hello"> = true\n\nconsole.log(a, b, c)`,
+  '033-distributive-conditional': `type MyExclude<T, U> = T extends U ? never : T\n\ntype Status = "draft" | "published" | "archived"\ntype ActiveStatus = MyExclude<Status, "archived">\n\nconst actives: ActiveStatus[] = ["draft", "published"]\nconsole.log(actives)`,
+  '034-infer-return': `type MyReturnType<T> = T extends (...args: any[]) => infer R ? R : never\n\nfunction getMessage() {\n  return "こんにちは、TypeScript"\n}\n\nconst msg: MyReturnType<typeof getMessage> = getMessage()\nconsole.log(msg)`,
+  '035-infer-element': `type ElementType<T> = T extends (infer E)[] ? E : never\n\nconst scores = [70, 85, 90]\n\nconst first: ElementType<typeof scores> = scores[0]\nconsole.log(first)`,
+  '036-template-literal-type':
+    'type UserId = `user-${number}`\n\nfunction makeUserId(n: number): UserId {\n  return `user-${n}`\n}\n\nconst id = makeUserId(7)\nconsole.log(id)',
+  '037-template-literal-union':
+    'type Size = "sm" | "md" | "lg"\n\ntype SizeClass = `btn-${Size}`\n\nfunction sizeClass(size: Size): SizeClass {\n  return `btn-${size}`\n}\n\nconst medium = sizeClass("md")\nconsole.log(medium)',
+  '038-satisfies': `const palette = {\n  primary: "#2563eb",\n  danger: "#dc2626",\n} satisfies Record<string, string>\n\nconst main = palette.primary\nconsole.log(main)`,
+  '039-event-name':
+    'type EventName<T> = T extends `on${infer E}` ? E : never\n\nconst clickName: EventName<"onClick"> = "Click"\nconst changeName: EventName<"onChange"> = "Change"\n\nconsole.log(clickName, changeName)',
 }
 // 誤り版（id 重複可なので配列）。label は失敗理由の説明。
 // 「コメント/文字列バイパス」= 型を書かずキーワードをコメントや文字列に置くチート答案。
@@ -288,6 +300,64 @@ const WRONG = [
     id: '021-partial-required',
     label: '正規表現バイパス',
     code: `type User = { name: string; age: number }\n\nconst _re = /Partial<User/g\n\nfunction updateUser(user, patch) {\n  return { ...user, ...patch }\n}`,
+  },
+  // 上級（032-039）: 各レッスンにコメントバイパス答案（必須規約）
+  {
+    id: '032-conditional-type',
+    label: 'コメントバイパス',
+    code: `// type IsString<T> = T extends string ? true : false\ntype IsString<T> = boolean\nconst a: IsString<string> = true\nconst b: IsString<number> = false\nconst c: IsString<"hello"> = true\nconsole.log(a, b, c)`,
+  },
+  {
+    id: '033-distributive-conditional',
+    label: 'コメントバイパス',
+    code: `// T extends U ? never : T\ntype MyExclude<T, U> = T\ntype Status = "draft" | "published" | "archived"\ntype ActiveStatus = MyExclude<Status, "archived">\nconst actives: ActiveStatus[] = ["draft", "published"]\nconsole.log(actives)`,
+  },
+  {
+    id: '034-infer-return',
+    label: 'コメントバイパス',
+    code: `/* type MyReturnType<T> = T extends (...args: any[]) => infer R ? R : never */\ntype MyReturnType<T> = unknown\nfunction getMessage() {\n  return "こんにちは、TypeScript"\n}\nconst msg: MyReturnType<typeof getMessage> = getMessage()\nconsole.log(msg)`,
+  },
+  {
+    id: '035-infer-element',
+    label: 'コメントバイパス',
+    code: `// T extends (infer E)[] ? E : never\ntype ElementType<T> = unknown\nconst scores = [70, 85, 90]\nconst first: ElementType<typeof scores> = scores[0]\nconsole.log(first)`,
+  },
+  {
+    id: '036-template-literal-type',
+    label: 'コメントバイパス',
+    code: '// type UserId = `user-${number}`\ntype UserId = string\nfunction makeUserId(n: number): UserId {\n  return "user-" + n\n}\nconst id = makeUserId(7)\nconsole.log(id)',
+  },
+  {
+    // 文字列の中に正解の型宣言を書くチート: structure 側 regex（引用符が \` と不一致）で封鎖
+    id: '036-template-literal-type',
+    label: '文字列偽装バイパス',
+    code: 'const _hint = "type UserId = `user-${number}`"\ntype UserId = string\nfunction makeUserId(n: number): UserId {\n  return "user-" + n\n}\nconst id = makeUserId(7)\nconsole.log(id)',
+  },
+  {
+    id: '037-template-literal-union',
+    label: 'コメントバイパス',
+    code: '// type SizeClass = `btn-${Size}`\ntype Size = "sm" | "md" | "lg"\ntype SizeClass = string\nfunction sizeClass(size: Size): SizeClass {\n  return "btn-" + size\n}\nconst medium = sizeClass("md")\nconsole.log(medium)',
+  },
+  {
+    id: '038-satisfies',
+    label: 'コメントバイパス',
+    code: `// } satisfies Record<string, string>\nconst palette: Record<string, string> = {\n  primary: "#2563eb",\n  danger: "#dc2626",\n}\nconst main = palette.primary\nconsole.log(main)`,
+  },
+  {
+    id: '038-satisfies',
+    label: '注釈残しバイパス',
+    code: `const palette: Record<string, string> = {\n  primary: "#2563eb",\n  danger: "#dc2626",\n} satisfies Record<string, string>\n\nconst main = palette.primary\nconsole.log(main)`,
+  },
+  {
+    id: '039-event-name',
+    label: 'コメントバイパス',
+    code: '// type EventName<T> = T extends `on${infer E}` ? E : never\ntype EventName<T> = string\nconst clickName: EventName<"onClick"> = "Click"\nconst changeName: EventName<"onChange"> = "Change"\nconsole.log(clickName, changeName)',
+  },
+  {
+    // 正解の型宣言を文字列に隠すチート: raw には残るが structure 側 regex で封鎖されることの回帰
+    id: '039-event-name',
+    label: '文字列偽装バイパス',
+    code: 'const _cheat = "type EventName<T> = T extends `on${infer E}` ? E : never"\ntype EventName<T> = string\nconst clickName: EventName<"onClick"> = "Click"\nconst changeName: EventName<"onChange"> = "Change"\nconsole.log(clickName, changeName)',
   },
 ]
 
