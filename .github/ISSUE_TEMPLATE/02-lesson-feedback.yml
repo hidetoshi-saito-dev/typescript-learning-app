@@ -1,0 +1,31 @@
+name: 📘 レッスン内容のフィードバック
+description: 説明の誤り・分かりにくさ・判定がおかしい等、レッスン内容への指摘
+title: "[Lesson] "
+labels: ["lesson-feedback"]
+body:
+  - type: input
+    id: lesson
+    attributes:
+      label: レッスンID
+      placeholder: 021-partial-required
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: 種類
+      options:
+        - 説明・問題文の誤り
+        - 説明が分かりにくい
+        - 判定結果がおかしい（正解なのに不正解 / その逆）
+        - 難易度・出題順の提案
+        - その他
+    validations:
+      required: true
+  - type: textarea
+    id: detail
+    attributes:
+      label: 内容
+      description: 「判定がおかしい」場合は、入力したコードを貼ってもらえると調査が早くなります
+    validations:
+      required: true
