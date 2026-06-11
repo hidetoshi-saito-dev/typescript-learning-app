@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useCallback, useEffect } from 'react'
+import { useRef, useCallback, useEffect, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { loader } from '@monaco-editor/react'
 import type * as MonacoNS from 'monaco-editor'
@@ -33,6 +33,28 @@ export function CodeEditor({ initialCode, onChange, onDiagnosticsChange }: Props
   const monacoRef = useRef<typeof MonacoNS | null>(null)
   const editorRef = useRef<MonacoNS.editor.IStandaloneCodeEditor | null>(null)
   const disposableRef = useRef<MonacoNS.IDisposable | null>(null)
+
+  // 【FCP との競合対策】初回ペイント前に Monaco のロードを開始しない。
+  // 本番 Lighthouse（2026-06-11）で、ハイドレーション直後に起動チェーン（合計 1MB 超）が
+  // 走った回はスロットリング下で FCP 1.1s → 7s 台に悪化することを実測。preload の優先度
+  // 調整（fetchPriority: low）では「実行開始のタイミング」自体は変えられないため、
+  // double-rAF（≒最初のフレームの描画完了後）までエディタのマウントを遅延する。
+  const [startEditor, setStartEditor] = useState(false)
+  // 【CLS 対策】Monaco はマウント直後に内部要素（monaco-scrollable-element）の位置調整を
+  // 行い、これが可視状態だと CLS に乗る（実測 0.23）。不可視要素のシフトは CLS に
+  // 算入されないため、マウント完了の次フレームまで opacity-0 で覆い、その後表示する。
+  const [editorSettled, setEditorSettled] = useState(false)
+
+  useEffect(() => {
+    let raf2 = 0
+    const raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => setStartEditor(true))
+    })
+    return () => {
+      cancelAnimationFrame(raf1)
+      cancelAnimationFrame(raf2)
+    }
+  }, [])
 
   // アンマウント時にマーカー監視を解除
   useEffect(() => {
@@ -112,33 +134,47 @@ export function CodeEditor({ initialCode, onChange, onDiagnosticsChange }: Props
 
       // ワーカー初期化待ちのフォールバック（onDidChangeMarkers が発火する前の保険）
       setTimeout(fetchDiagnostics, 1500)
+
+      // マウント直後の内部レイアウト調整が終わった次フレームで表示に切り替える
+      requestAnimationFrame(() => setEditorSettled(true))
     },
     [fetchDiagnostics],
   )
 
   return (
-    <MonacoEditor
-      height="100%"
-      defaultLanguage="typescript"
-      defaultValue={initialCode}
-      theme="vs-dark"
-      loading={
+    <div className="relative h-full">
+      {/* エディタが安定するまで上に重ねる読み込み表示（下のシフトも視覚的に隠す） */}
+      {!editorSettled && (
         <div
           role="status"
-          className="flex h-full w-full items-center justify-center bg-[#1e1e1e] text-sm text-zinc-500"
+          className="absolute inset-0 z-10 flex items-center justify-center bg-[#1e1e1e] text-sm text-zinc-500"
         >
           エディタを読み込み中…
         </div>
-      }
-      onChange={handleChange}
-      onMount={handleMount}
-      options={{
-        minimap: { enabled: false },
-        fontSize: 16,
-        lineNumbers: 'on',
-        scrollBeyondLastLine: false,
-        wordWrap: 'on',
-      }}
-    />
+      )}
+      <div
+        className={
+          editorSettled ? 'h-full opacity-100 transition-opacity duration-150' : 'h-full opacity-0'
+        }
+      >
+        {startEditor && (
+          <MonacoEditor
+            height="100%"
+            defaultLanguage="typescript"
+            defaultValue={initialCode}
+            theme="vs-dark"
+            onChange={handleChange}
+            onMount={handleMount}
+            options={{
+              minimap: { enabled: false },
+              fontSize: 16,
+              lineNumbers: 'on',
+              scrollBeyondLastLine: false,
+              wordWrap: 'on',
+            }}
+          />
+        )}
+      </div>
+    </div>
   )
 }
