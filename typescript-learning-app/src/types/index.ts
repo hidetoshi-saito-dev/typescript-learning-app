@@ -29,6 +29,10 @@ export type Lesson = {
   hint?: string
   initialCode: string
   testCases: TestCase[]
+  // 実践クラス（040+）専用。040+ は両方必須・039 以前は禁止という不正状態は
+  // 型では表現せず verify-lessons の形式整合チェックで固定する（設計正本 curriculum-practical.md）
+  scenario?: string // 依頼の文脈。チケットカードに「。」分割の段落で表示
+  requirements?: string[] // 仕様。チケットカードに1要素=1箇条書きで表示
 }
 
 // Worker 内部用（Worker → main thread のメッセージ型）

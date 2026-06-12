@@ -361,6 +361,94 @@ const WRONG = [
   },
 ]
 
+// 連作整合: initialCode(N+1) が前レッスン模範解答のアンカー文字列を含むこと。
+// 模範解答を変更したのに後続レッスンの initialCode へ同期し忘れる事故を CI で検出する
+// （設計正本 curriculum-practical.md 4-4。anchors は前レッスンで完成する中核宣言を1〜3個）。
+// シナリオ実装 PR ごとに追記していく。
+const CONTINUITY = [
+  // { id: '041-...', prev: '040-...', anchors: ['type OrderStatus ='] },
+]
+
+// ProblemPane の splitAtPeriod は `〜` / **〜** の内側の「。」でも文分割してしまうため、
+// インライン記法の内側に「。」を書くことは執筆禁止（正本 4-5。表示崩れの静的検査）。
+// 判定は ProblemPane.renderInlineMarkdown と同じトークナイズをミラーする
+// （素朴な /`.*。.*`/ では「`a` 。 `b`」のようにスパンの外にある「。」を
+//   閉じ backtick〜開き backtick の区間として誤検出する）
+function hasPeriodInsideInline(text) {
+  const parts = text.split(/(`[^`]+`|\*\*[^*]+\*\*)/)
+  return parts.some(
+    (p) =>
+      ((p.startsWith('`') && p.endsWith('`') && p.length > 2) ||
+        (p.startsWith('**') && p.endsWith('**') && p.length > 4)) &&
+      p.includes('。'),
+  )
+}
+
+/** 形式整合＋連作整合＋インライン記法の静的検査。失敗件数を返す */
+function verifyShape(lessons) {
+  let fails = 0
+
+  console.log(
+    '\n=== 形式整合: 実践クラスのフィールド規約（040+ は scenario/requirements 必須・039 以前は禁止）===',
+  )
+  for (const id of Object.keys(lessons).sort()) {
+    const lesson = lessons[id]
+    const isPractical = parseInt(id, 10) >= 40
+    const hasScenario = typeof lesson.scenario === 'string' && lesson.scenario.length > 0
+    const hasRequirements = Array.isArray(lesson.requirements) && lesson.requirements.length > 0
+    const ok = isPractical
+      ? hasScenario && hasRequirements
+      : lesson.scenario === undefined && lesson.requirements === undefined
+    if (!ok) {
+      fails++
+      console.log(
+        `  ${id}: *** FAIL *** (practical=${isPractical} scenario=${hasScenario} requirements=${hasRequirements})`,
+      )
+    }
+    // splitAtPeriod を通るフィールドのみ検査（requirements は li 表示で分割されない）
+    for (const [field, text] of [
+      ['description', lesson.description],
+      ['challenge', lesson.challenge],
+      ['scenario', lesson.scenario],
+    ]) {
+      if (typeof text === 'string' && hasPeriodInsideInline(text)) {
+        fails++
+        console.log(
+          `  ${id}: *** FAIL *** ${field} のインライン記法（\`〜\`/**〜**）内に「。」がある`,
+        )
+      }
+    }
+  }
+  if (fails === 0) console.log('  全レッスン OK')
+
+  console.log('\n=== 連作整合: initialCode が前レッスン模範解答のアンカーを含むか ===')
+  for (const { id, prev, anchors } of CONTINUITY) {
+    const lesson = lessons[id]
+    if (!lesson) {
+      console.log(`  ${id}: SKIP (レッスン未実装)`)
+      continue
+    }
+    if (!SOLUTIONS[prev]) {
+      fails++
+      console.log(`  ${id}: *** FAIL *** 前レッスン ${prev} の SOLUTION が未登録`)
+      continue
+    }
+    for (const anchor of anchors) {
+      const inInitial = lesson.initialCode.includes(anchor)
+      const inPrevSolution = SOLUTIONS[prev].includes(anchor)
+      if (!inInitial || !inPrevSolution) {
+        fails++
+        console.log(
+          `  ${id}: *** FAIL *** anchor "${anchor}" (initialCode=${inInitial} / ${prev} SOLUTION=${inPrevSolution})`,
+        )
+      }
+    }
+  }
+  if (CONTINUITY.length === 0) console.log('  （連作アンカー未登録）')
+
+  return fails
+}
+
 async function main() {
   const files = fs
     .readdirSync(DATA_DIR)
@@ -375,6 +463,7 @@ async function main() {
 
   let mismatches = 0
   let solFails = 0
+  const shapeFails = verifyShape(lessons)
 
   console.log('=== 回帰: initialCode の判定が new Function 版と AsyncFunction 版で一致するか ===')
   for (const id of Object.keys(lessons).sort()) {
@@ -413,9 +502,9 @@ async function main() {
   }
 
   console.log(
-    `\n結果: 回帰ミスマッチ ${mismatches} 件 / 前進失敗 ${solFails} 件 / 検証レッスン ${Object.keys(lessons).length} 本`,
+    `\n結果: 回帰ミスマッチ ${mismatches} 件 / 前進失敗 ${solFails} 件 / 形式・連作 ${shapeFails} 件 / 検証レッスン ${Object.keys(lessons).length} 本`,
   )
-  process.exit(mismatches + solFails === 0 ? 0 : 1)
+  process.exit(mismatches + solFails + shapeFails === 0 ? 0 : 1)
 }
 
 // 他スクリプト（verify-strict.cjs 等）から SOLUTIONS 等を再利用できるようエクスポート。

@@ -13,6 +13,9 @@ test.describe('レッスン001（ゲスト）', () => {
     // 問題文（Server Component 部分）
     await expect(page.getByRole('heading', { name: '型注釈の基本' })).toBeVisible()
 
+    // 既存レッスンには実践クラスのチケットカードが出ない（optional フィールド未定義の描画不変保証）
+    await expect(page.locator('section[aria-label="チケット"]')).toHaveCount(0)
+
     // Monaco が self-host（/monaco/vs）から起動する
     await expect(page.locator('.monaco-editor').first()).toBeVisible({ timeout: 60_000 })
 

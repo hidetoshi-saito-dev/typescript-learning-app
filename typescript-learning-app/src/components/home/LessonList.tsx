@@ -1,10 +1,11 @@
 'use client'
 
 import Link from 'next/link'
-import { useMemo, useSyncExternalStore } from 'react'
+import { Fragment, useMemo, useSyncExternalStore } from 'react'
 import { useHasHydrated } from '@/lib/hooks/use-hydrated'
 import { getGuestServerSnapshot, getGuestSnapshot, subscribeGuest } from '@/lib/progress/guest'
 import { LEVEL_LABELS, LEVEL_ORDER, type LessonLevel } from '@/lib/lessons/level'
+import { getScenarioInfo } from '@/lib/lessons/scenario'
 import type { ProgressDetail } from '@/lib/progress/actions'
 import { RetentionPanel } from './RetentionPanel'
 
@@ -142,58 +143,69 @@ export function LessonList({ lessons, serverProgress }: Props) {
                 const isDone = isReady && completed.has(lesson.id)
                 const isNext = isReady && i === nextIndex && !allDone
                 const num = parseInt(lesson.id.split('-')[0], 10)
+                // 実践セクションのみ: 連作の先頭にシナリオ小見出しを挿す（他レベルは undefined で無変化）
+                const scenarioInfo = level === 'practical' ? getScenarioInfo(lesson.id) : undefined
 
                 return (
-                  <li key={lesson.id}>
-                    <Link
-                      href={`/lessons/${lesson.id}`}
-                      className={`group flex items-center gap-4 rounded-xl border p-4 transition-all duration-150 ${
-                        isDone
-                          ? 'border-green-200 bg-green-50 hover:border-green-300 hover:bg-green-100/70'
-                          : isNext
-                            ? 'border-blue-200 bg-blue-50 shadow-sm shadow-blue-100/60 hover:border-blue-300 hover:bg-blue-100/70'
-                            : 'border-zinc-200 bg-white hover:border-zinc-300 hover:bg-zinc-50'
-                      }`}
-                    >
-                      {/* 番号 / チェックバッジ */}
-                      <div
-                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold transition-colors ${
+                  <Fragment key={lesson.id}>
+                    {scenarioInfo?.step === 1 && (
+                      <li className="mt-1 px-1 pt-1 text-xs font-bold text-zinc-600">
+                        {scenarioInfo.title} — {scenarioInfo.flow}
+                      </li>
+                    )}
+                    <li>
+                      <Link
+                        href={`/lessons/${lesson.id}`}
+                        className={`group flex items-center gap-4 rounded-xl border p-4 transition-all duration-150 ${
                           isDone
-                            ? 'bg-green-600 text-white'
+                            ? 'border-green-200 bg-green-50 hover:border-green-300 hover:bg-green-100/70'
                             : isNext
-                              ? 'bg-blue-600 text-white'
-                              : 'bg-zinc-100 text-zinc-600 group-hover:bg-zinc-200'
+                              ? 'border-blue-200 bg-blue-50 shadow-sm shadow-blue-100/60 hover:border-blue-300 hover:bg-blue-100/70'
+                              : 'border-zinc-200 bg-white hover:border-zinc-300 hover:bg-zinc-50'
                         }`}
                       >
-                        {isDone ? <CheckIcon /> : num}
-                      </div>
-
-                      {/* タイトル */}
-                      <span
-                        className={`flex-1 font-medium ${
-                          isDone ? 'text-green-800' : isNext ? 'text-blue-900' : 'text-zinc-800'
-                        }`}
-                      >
-                        {lesson.title}
-                      </span>
-
-                      {/* ステータスラベル */}
-                      {isDone ? (
-                        <span className="shrink-0 text-xs font-semibold text-green-700">完了</span>
-                      ) : isNext ? (
-                        <span className="shrink-0 rounded-full bg-blue-600 px-3 py-1 text-xs font-semibold text-white">
-                          開始 →
-                        </span>
-                      ) : (
-                        <span
-                          aria-hidden="true"
-                          className="shrink-0 text-sm text-zinc-400 transition-colors group-hover:text-zinc-500"
+                        {/* 番号 / チェックバッジ */}
+                        <div
+                          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold transition-colors ${
+                            isDone
+                              ? 'bg-green-600 text-white'
+                              : isNext
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-zinc-100 text-zinc-600 group-hover:bg-zinc-200'
+                          }`}
                         >
-                          →
+                          {isDone ? <CheckIcon /> : num}
+                        </div>
+
+                        {/* タイトル */}
+                        <span
+                          className={`flex-1 font-medium ${
+                            isDone ? 'text-green-800' : isNext ? 'text-blue-900' : 'text-zinc-800'
+                          }`}
+                        >
+                          {lesson.title}
                         </span>
-                      )}
-                    </Link>
-                  </li>
+
+                        {/* ステータスラベル */}
+                        {isDone ? (
+                          <span className="shrink-0 text-xs font-semibold text-green-700">
+                            完了
+                          </span>
+                        ) : isNext ? (
+                          <span className="shrink-0 rounded-full bg-blue-600 px-3 py-1 text-xs font-semibold text-white">
+                            開始 →
+                          </span>
+                        ) : (
+                          <span
+                            aria-hidden="true"
+                            className="shrink-0 text-sm text-zinc-400 transition-colors group-hover:text-zinc-500"
+                          >
+                            →
+                          </span>
+                        )}
+                      </Link>
+                    </li>
+                  </Fragment>
                 )
               })}
             </ul>
