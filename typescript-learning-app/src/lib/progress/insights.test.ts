@@ -109,6 +109,25 @@ describe('computeBadges', () => {
     const badges = computeBadges(new Set(items.map((i) => i.id)), items)
     expect(badges.every((b) => b.earned)).toBe(true)
   })
+
+  it('実践レッスンが無い間は実践マスターを配列に含めない（0本ガード）', () => {
+    const badges = computeBadges(new Set(), items)
+    expect(badges.some((b) => b.id === 'practical-master')).toBe(false)
+  })
+
+  it('実践レッスンがあれば実践マスターが現れ、実践全完了で earned', () => {
+    const withPractical = [...items, { id: '040-p', level: 'practical' as const }]
+    const none = computeBadges(new Set(), withPractical)
+    expect(none.find((b) => b.id === 'practical-master')?.earned).toBe(false)
+
+    const practicalDone = computeBadges(new Set(['040-p']), withPractical)
+    expect(practicalDone.find((b) => b.id === 'practical-master')?.earned).toBe(true)
+    // 実践だけ完了しても全制覇には届かない
+    expect(practicalDone.find((b) => b.id === 'all-complete')?.earned).toBe(false)
+
+    const allDone = computeBadges(new Set(withPractical.map((i) => i.id)), withPractical)
+    expect(allDone.every((b) => b.earned)).toBe(true)
+  })
 })
 
 describe('reviewCandidates', () => {

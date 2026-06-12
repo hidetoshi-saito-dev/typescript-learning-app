@@ -87,6 +87,20 @@ export function computeBadges(
     const inLevel = items.filter((i) => i.level === level)
     return inLevel.length > 0 && inLevel.every((i) => completed.has(i.id))
   }
+  // 実践レッスンが1本も配信されていない間は実践マスターを配列に含めない
+  // （形式基盤だけ先行リリースした状態で「絶対に獲得できないバッジ」が
+  //   未獲得チップとして本番に並ぶのを防ぐ。設計正本 curriculum-practical.md 1章）
+  const practicalBadges: Badge[] = items.some((i) => i.level === 'practical')
+    ? [
+        {
+          id: 'practical-master',
+          icon: '🛠️',
+          label: '実践マスター',
+          description: '実践をすべて完了',
+          earned: levelAllDone('practical'),
+        },
+      ]
+    : []
   return [
     {
       id: 'first-step',
@@ -116,6 +130,7 @@ export function computeBadges(
       description: '上級をすべて完了',
       earned: levelAllDone('advanced'),
     },
+    ...practicalBadges,
     {
       id: 'all-complete',
       icon: '👑',

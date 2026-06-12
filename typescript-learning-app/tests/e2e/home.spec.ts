@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { getCatalogList } from '../../src/lib/lessons/catalog'
+import { getLessonLevel, LEVEL_LABELS, LEVEL_ORDER } from '../../src/lib/lessons/level'
 
 test.describe('ホーム（ゲスト）', () => {
   test('レッスン一覧（カタログ全件）と進捗UIが表示される', async ({ page }) => {
@@ -19,10 +20,17 @@ test.describe('ホーム（ゲスト）', () => {
     // 進捗カード（ゲストは 0 / 31 から）
     await expect(page.getByText('学習進捗')).toBeVisible()
 
-    // レベル別セクションヘッダー
-    await expect(page.getByRole('heading', { level: 3, name: '初級' })).toBeVisible()
-    await expect(page.getByRole('heading', { level: 3, name: '中級' })).toBeVisible()
-    await expect(page.getByRole('heading', { level: 3, name: '上級' })).toBeVisible()
+    // レベル別セクションヘッダー（カタログ駆動: レッスンが存在するレベルだけ出る。
+    // 実践レベルは形式基盤のみの段階では出ない＝空セクションガードの回帰も兼ねる）
+    for (const level of LEVEL_ORDER) {
+      const hasLessons = getCatalogList().some((l) => getLessonLevel(l.id) === level)
+      const heading = page.getByRole('heading', { level: 3, name: LEVEL_LABELS[level] })
+      if (hasLessons) {
+        await expect(heading).toBeVisible()
+      } else {
+        await expect(heading).toHaveCount(0)
+      }
+    }
 
     // 学習のきろくパネル（未完了でもバッジは「次の目標」として見える）
     await expect(page.getByText('学習のきろく')).toBeVisible()

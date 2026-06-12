@@ -4,6 +4,8 @@ import Link from 'next/link'
 import { useReducer, useCallback, useRef, useEffect } from 'react'
 import type { Lesson, TypeScriptDiagnostic, JudgeResponse } from '@/types'
 import { judge } from '@/lib/judge'
+import { getLessonLevel } from '@/lib/lessons/level'
+import { getScenarioInfo } from '@/lib/lessons/scenario'
 import { markComplete } from '@/lib/progress/guest'
 import { markLessonComplete } from '@/lib/progress/actions'
 import { ProblemPane } from './ProblemPane'
@@ -116,6 +118,7 @@ export function LessonWorkspace({ lesson, prevLesson, nextLesson, isGuest = true
   const isCorrect =
     state.judgePhase.phase === 'done' && state.judgePhase.result.status === 'correct'
   const lessonNumber = lesson.id.split('-')[0]
+  const isPractical = getLessonLevel(lesson.id) === 'practical'
 
   return (
     <div className="flex h-screen flex-col overflow-hidden">
@@ -151,6 +154,13 @@ export function LessonWorkspace({ lesson, prevLesson, nextLesson, isGuest = true
             description={lesson.description}
             challenge={lesson.challenge}
             hint={lesson.hint}
+            scenario={lesson.scenario}
+            requirements={lesson.requirements}
+            // 受け入れ条件は testCases.description の事前表示（判定基準と定義上一致＝乖離バグが構造的に起きない）
+            acceptanceCriteria={
+              isPractical ? lesson.testCases.map((t) => t.description) : undefined
+            }
+            scenarioInfo={getScenarioInfo(lesson.id)}
           />
         </aside>
 
