@@ -18,7 +18,13 @@ export type ScenarioInfo = {
 type ScenarioDef = { title: string; flow: string; lessons: readonly string[] }
 
 // シナリオはレッスン実装 PR（シナリオA/B/C）ごとに追記していく
-const SCENARIOS: readonly ScenarioDef[] = []
+const SCENARIOS: readonly ScenarioDef[] = [
+  {
+    title: 'TonariCafe',
+    flow: '新規開発',
+    lessons: ['040-order-status-model', '041-menu-master-satisfies', '042-order-input-guard'],
+  },
+]
 
 export function getScenarioInfo(lessonId: string): ScenarioInfo | undefined {
   for (const s of SCENARIOS) {

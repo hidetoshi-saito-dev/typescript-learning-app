@@ -49,6 +49,12 @@ test.describe('レッスン001（ゲスト）', () => {
     await expect(page.getByRole('button', { name: 'GitHub でログイン' })).toBeVisible()
   })
 
+  test('ゲストは実践レッスン（040+）にも入れずログインへリダイレクトされる', async ({ page }) => {
+    // 既存の「番号 >= 4 はログイン必須」ゲートが実践クラスを自動カバーすることの固定
+    await page.goto('/lessons/040-order-status-model')
+    await expect(page).toHaveURL(/\/login\?redirect=%2Flessons%2F040-order-status-model/)
+  })
+
   test('存在しないレッスンは 404 を返す', async ({ page }) => {
     // middleware は存在チェックより先に「番号 >= 4 はログインへ」をゲートするため、
     // ゲストで 404 を観測できるのは番号 < 4 の存在しない ID のみ（curl 307 ≠ 実在の意思決定ログ参照）

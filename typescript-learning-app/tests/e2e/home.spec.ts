@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { getCatalogList } from '../../src/lib/lessons/catalog'
 import { getLessonLevel, LEVEL_LABELS, LEVEL_ORDER } from '../../src/lib/lessons/level'
+import { getScenarios } from '../../src/lib/lessons/scenario'
 
 test.describe('ホーム（ゲスト）', () => {
   test('レッスン一覧（カタログ全件）と進捗UIが表示される', async ({ page }) => {
@@ -30,6 +31,11 @@ test.describe('ホーム（ゲスト）', () => {
       } else {
         await expect(heading).toHaveCount(0)
       }
+    }
+
+    // 実践セクションの連作シナリオ小見出し（シナリオ定義駆動）
+    for (const scenario of getScenarios()) {
+      await expect(page.getByText(`${scenario.title} — ${scenario.flow}`)).toBeVisible()
     }
 
     // 学習のきろくパネル（未完了でもバッジは「次の目標」として見える）

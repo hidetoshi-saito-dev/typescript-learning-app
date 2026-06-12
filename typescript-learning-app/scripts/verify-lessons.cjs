@@ -220,6 +220,80 @@ const SOLUTIONS = {
   '038-satisfies': `const palette = {\n  primary: "#2563eb",\n  danger: "#dc2626",\n} satisfies Record<string, string>\n\nconst main = palette.primary\nconsole.log(main)`,
   '039-event-name':
     'type EventName<T> = T extends `on${infer E}` ? E : never\n\nconst clickName: EventName<"onClick"> = "Click"\nconst changeName: EventName<"onChange"> = "Change"\n\nconsole.log(clickName, changeName)',
+  // 実践シナリオA: TonariCafe（040-042）。連作のため後続レッスンの initialCode が
+  // ここの SOLUTION のアンカーを含むこと（CONTINUITY で機械検証）
+  '040-order-status-model': `type OrderStatus = "pending" | "paid" | "served" | "cancelled"
+
+type Order = {
+  id: number
+  items: string[]
+  status: OrderStatus
+}
+
+const ALL_STATUSES: OrderStatus[] = ["pending", "paid", "served", "cancelled"]
+
+function canCancel(order: Order): boolean {
+  return order.status === "pending" || order.status === "paid"
+}
+
+const order: Order = { id: 1, items: ["latte"], status: "pending" }
+console.log(canCancel(order), ALL_STATUSES.length)`,
+  '041-menu-master-satisfies': `type OrderStatus = "pending" | "paid" | "served" | "cancelled"
+
+type Order = {
+  id: number
+  items: string[]
+  status: OrderStatus
+}
+
+function canCancel(order: Order): boolean {
+  return order.status === "pending" || order.status === "paid"
+}
+
+const MENU = {
+  latte: 480,
+  tea: 420,
+  mocha: 520,
+} satisfies Record<string, number>
+
+type MenuId = keyof typeof MENU
+
+function totalOf(items: MenuId[]): number {
+  return items.reduce((sum, item) => sum + MENU[item], 0)
+}
+
+console.log(totalOf(["latte", "tea"]), canCancel({ id: 1, items: ["latte"], status: "paid" }))`,
+  '042-order-input-guard': `type OrderStatus = "pending" | "paid" | "served" | "cancelled"
+
+type Order = {
+  id: number
+  items: string[]
+  status: OrderStatus
+}
+
+const ALL_STATUSES: OrderStatus[] = ["pending", "paid", "served", "cancelled"]
+
+function canCancel(order: Order): boolean {
+  return order.status === "pending" || order.status === "paid"
+}
+
+function isOrder(value: unknown): value is Order {
+  if (typeof value !== "object" || value === null) return false
+  if (!("id" in value) || !("items" in value) || !("status" in value)) return false
+  if (typeof value.id !== "number") return false
+  if (!Array.isArray(value.items)) return false
+  if (!value.items.every((item: unknown) => typeof item === "string")) return false
+  return ALL_STATUSES.some((s) => s === value.status)
+}
+
+function registerOrder(value: unknown): string {
+  if (!isOrder(value)) {
+    return "不正な注文です"
+  }
+  return "注文 " + value.id + " を受け付けました（" + value.items.length + "品）"
+}
+
+console.log(registerOrder({ id: 1, items: ["latte"], status: "pending" }))`,
 }
 // 誤り版（id 重複可なので配列）。label は失敗理由の説明。
 // 「コメント/文字列バイパス」= 型を書かずキーワードをコメントや文字列に置くチート答案。
@@ -359,6 +433,158 @@ const WRONG = [
     label: '文字列偽装バイパス',
     code: 'const _cheat = "type EventName<T> = T extends `on${infer E}` ? E : never"\ntype EventName<T> = string\nconst clickName: EventName<"onClick"> = "Click"\nconst changeName: EventName<"onChange"> = "Change"\nconsole.log(clickName, changeName)',
   },
+  // 実践クラス（040+）: コメントバイパス＋ダミー構文バイパスを各レッスン必須（正本 3章）
+  {
+    id: '040-order-status-model',
+    label: 'コメントバイパス',
+    code: `// type OrderStatus = "pending" | "paid" | "served" | "cancelled"
+type OrderStatus = string
+type Order = { id: number; items: string[]; status: OrderStatus }
+const ALL_STATUSES: OrderStatus[] = ["pending", "paid", "served", "cancelled"]
+function canCancel(order: Order): boolean {
+  return order.status === "pending" || order.status === "paid"
+}
+console.log(canCancel({ id: 1, items: [], status: "pending" }), ALL_STATUSES.length)`,
+  },
+  {
+    // ダミーUnion（"x"×4）で②Union形を満たし、①を避けるため ALL_STATUSES の注釈を剥がすチート
+    // → ALL_STATUSES アンカー②で不合格（ブラウザでは注釈を残しても①が落とす）
+    id: '040-order-status-model',
+    label: 'ダミーUnion＋注釈剥がし',
+    code: `type OrderStatus = "x" | "x" | "x" | "x"
+type Order = { id: number; items: string[]; status: string }
+const ALL_STATUSES = ["pending", "paid", "served", "cancelled"]
+function canCancel(order: Order): boolean {
+  return order.status === "pending" || order.status === "paid"
+}
+console.log(canCancel({ id: 1, items: [], status: "pending" }), ALL_STATUSES.length)`,
+  },
+  {
+    // 正解の宣言を置換付きテンプレートに隠すチート: structure では中身が空白化され②Union形に一致しない
+    id: '040-order-status-model',
+    label: 'テンプレート偽装バイパス',
+    code: 'const _memo = `${""}type OrderStatus = "pending" | "paid" | "served" | "cancelled"${""}`\ntype OrderStatus = string\ntype Order = { id: number; items: string[]; status: OrderStatus }\nconst ALL_STATUSES: OrderStatus[] = ["pending", "paid", "served", "cancelled"]\nfunction canCancel(order: Order): boolean {\n  return order.status === "pending" || order.status === "paid"\n}\nconsole.log(canCancel({ id: 1, items: [], status: "pending" }), ALL_STATUSES.length)',
+  },
+  {
+    id: '041-menu-master-satisfies',
+    label: 'コメントバイパス',
+    code: `type OrderStatus = "pending" | "paid" | "served" | "cancelled"
+type Order = { id: number; items: string[]; status: OrderStatus }
+function canCancel(order: Order): boolean {
+  return order.status === "pending" || order.status === "paid"
+}
+// const MENU = {...} satisfies Record<string, number>
+// type MenuId = keyof typeof MENU
+const MENU = { latte: 480, tea: 420, mocha: 520 }
+type MenuId = string
+function totalOf(items: MenuId[]): number {
+  return items.reduce((sum, item) => sum + MENU[item as keyof typeof MENU], 0)
+}
+console.log(totalOf(["latte", "tea"]))`,
+  },
+  {
+    // 課題対象と無関係なダミー宣言で satisfies の存在チェックを満たそうとするチート
+    // → MENU 名アンカー②で不合格（識別子アンカー規約の回帰カナリア）
+    id: '041-menu-master-satisfies',
+    label: 'ダミーsatisfies',
+    code: `type OrderStatus = "pending" | "paid" | "served" | "cancelled"
+type Order = { id: number; items: string[]; status: OrderStatus }
+function canCancel(order: Order): boolean {
+  return order.status === "pending" || order.status === "paid"
+}
+const _dummy = {} satisfies Record<string, number>
+const MENU = { latte: 480, tea: 420, mocha: 520 }
+type MenuId = keyof typeof MENU
+function totalOf(items: MenuId[]): number {
+  return items.reduce((sum, item) => sum + MENU[item], 0)
+}
+console.log(totalOf(["latte", "tea"]))`,
+  },
+  {
+    // satisfies でなく型注釈のまま → MenuId が string に広がる（038 と同じ widening の罠）
+    id: '041-menu-master-satisfies',
+    label: '注釈残し',
+    code: `type OrderStatus = "pending" | "paid" | "served" | "cancelled"
+type Order = { id: number; items: string[]; status: OrderStatus }
+function canCancel(order: Order): boolean {
+  return order.status === "pending" || order.status === "paid"
+}
+const MENU: Record<string, number> = { latte: 480, tea: 420, mocha: 520 }
+type MenuId = keyof typeof MENU
+function totalOf(items: MenuId[]): number {
+  return items.reduce((sum, item) => sum + MENU[item], 0)
+}
+console.log(totalOf(["latte", "tea"]))`,
+  },
+  {
+    id: '042-order-input-guard',
+    label: 'コメントバイパス',
+    code: `type OrderStatus = "pending" | "paid" | "served" | "cancelled"
+type Order = { id: number; items: string[]; status: OrderStatus }
+const ALL_STATUSES: OrderStatus[] = ["pending", "paid", "served", "cancelled"]
+function canCancel(order: Order): boolean {
+  return order.status === "pending" || order.status === "paid"
+}
+// function isOrder(value: unknown): value is Order
+function isOrder(value) {
+  return typeof value === "object" && value !== null
+}
+function registerOrder(value) {
+  if (!isOrder(value)) {
+    return "不正な注文です"
+  }
+  return "注文 " + value.id + " を受け付けました（" + value.items.length + "品）"
+}
+console.log(registerOrder({ id: 1, items: ["latte"], status: "pending" }))`,
+  },
+  {
+    // 型述語は書くが検証しない（常に true）→ ③の不正データ・null ケースで不合格
+    id: '042-order-input-guard',
+    label: '検証しない型述語',
+    code: `type OrderStatus = "pending" | "paid" | "served" | "cancelled"
+type Order = { id: number; items: string[]; status: OrderStatus }
+const ALL_STATUSES: OrderStatus[] = ["pending", "paid", "served", "cancelled"]
+function canCancel(order: Order): boolean {
+  return order.status === "pending" || order.status === "paid"
+}
+function isOrder(value: unknown): value is Order {
+  return true
+}
+function registerOrder(value: unknown): string {
+  if (!isOrder(value)) {
+    return "不正な注文です"
+  }
+  return "注文 " + value.id + " を受け付けました（" + value.items.length + "品）"
+}
+console.log(registerOrder({ id: 1, items: ["latte"], status: "pending" }))`,
+  },
+  {
+    // 型述語を書かず as Order で断定するチート → ②不存在チェックで不合格
+    id: '042-order-input-guard',
+    label: 'as 断定',
+    code: `type OrderStatus = "pending" | "paid" | "served" | "cancelled"
+type Order = { id: number; items: string[]; status: OrderStatus }
+const ALL_STATUSES: OrderStatus[] = ["pending", "paid", "served", "cancelled"]
+function canCancel(order: Order): boolean {
+  return order.status === "pending" || order.status === "paid"
+}
+function isOrder(value: unknown): boolean {
+  if (typeof value !== "object" || value === null) return false
+  if (!("id" in value) || !("items" in value) || !("status" in value)) return false
+  if (typeof value.id !== "number") return false
+  if (!Array.isArray(value.items)) return false
+  if (!value.items.every((item: unknown) => typeof item === "string")) return false
+  return ALL_STATUSES.some((s) => s === value.status)
+}
+function registerOrder(value: unknown): string {
+  if (!isOrder(value)) {
+    return "不正な注文です"
+  }
+  const order = value as Order
+  return "注文 " + order.id + " を受け付けました（" + order.items.length + "品）"
+}
+console.log(registerOrder({ id: 1, items: ["latte"], status: "pending" }))`,
+  },
 ]
 
 // 連作整合: initialCode(N+1) が前レッスン模範解答のアンカー文字列を含むこと。
@@ -366,7 +592,22 @@ const WRONG = [
 // （設計正本 curriculum-practical.md 4-4。anchors は前レッスンで完成する中核宣言を1〜3個）。
 // シナリオ実装 PR ごとに追記していく。
 const CONTINUITY = [
-  // { id: '041-...', prev: '040-...', anchors: ['type OrderStatus ='] },
+  {
+    id: '041-menu-master-satisfies',
+    prev: '040-order-status-model',
+    anchors: [
+      'type OrderStatus = "pending" | "paid" | "served" | "cancelled"',
+      'function canCancel(order: Order): boolean {',
+    ],
+  },
+  {
+    id: '042-order-input-guard',
+    prev: '041-menu-master-satisfies',
+    anchors: [
+      'type OrderStatus = "pending" | "paid" | "served" | "cancelled"',
+      'function canCancel(order: Order): boolean {',
+    ],
+  },
 ]
 
 // ProblemPane の splitAtPeriod は `〜` / **〜** の内側の「。」でも文分割してしまうため、
