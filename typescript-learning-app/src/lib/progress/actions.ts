@@ -49,14 +49,25 @@ export async function mergeGuestProgress(lessonIds: string[]): Promise<void> {
   )
 }
 
-export async function getServerCompletedLessons(): Promise<string[]> {
+export type ProgressDetail = { lessonId: string; completedAt: string }
+
+/**
+ * 完了レッスンを completed_at 付きで返す（古い順）。
+ * バッジ・ストリーク・週別グラフ・復習候補はすべてここから導出する（スキーマ変更不要）。
+ * 日付（YYYY-MM-DD）への変換はクライアント側で行うこと（サーバーは UTC のため）。
+ */
+export async function getServerProgressDetail(): Promise<ProgressDetail[]> {
   const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) return []
 
-  const { data } = await supabase.from('lesson_progress').select('lesson_id').eq('user_id', user.id)
+  const { data } = await supabase
+    .from('lesson_progress')
+    .select('lesson_id, completed_at')
+    .eq('user_id', user.id)
+    .order('completed_at', { ascending: true })
 
-  return data?.map((row) => row.lesson_id) ?? []
+  return data?.map((row) => ({ lessonId: row.lesson_id, completedAt: row.completed_at })) ?? []
 }

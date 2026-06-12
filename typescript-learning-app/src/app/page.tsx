@@ -1,6 +1,6 @@
 import { getCatalogList } from '@/lib/lessons/catalog'
 import { getLessonLevel } from '@/lib/lessons/level'
-import { getServerCompletedLessons } from '@/lib/progress/actions'
+import { getServerProgressDetail } from '@/lib/progress/actions'
 import { LessonList } from '@/components/home/LessonList'
 import { UserMenu } from '@/components/auth/UserMenu'
 import { createClient } from '@/lib/supabase/server'
@@ -30,7 +30,7 @@ export default async function Home({ searchParams }: Props) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  const serverCompleted = user ? await getServerCompletedLessons() : undefined
+  const serverProgress = user ? await getServerProgressDetail() : undefined
 
   return (
     <div className="min-h-screen bg-zinc-50 font-sans">
@@ -62,7 +62,7 @@ export default async function Home({ searchParams }: Props) {
           <h2 className="mb-4 text-xs font-semibold uppercase tracking-wider text-zinc-500">
             レッスン一覧
           </h2>
-          <LessonList lessons={lessons} serverCompleted={serverCompleted} />
+          <LessonList lessons={lessons} serverProgress={serverProgress} />
         </section>
 
         {/* フッター: フィードバック導線 */}
