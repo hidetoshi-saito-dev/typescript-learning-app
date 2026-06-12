@@ -220,6 +220,295 @@ const SOLUTIONS = {
   '038-satisfies': `const palette = {\n  primary: "#2563eb",\n  danger: "#dc2626",\n} satisfies Record<string, string>\n\nconst main = palette.primary\nconsole.log(main)`,
   '039-event-name':
     'type EventName<T> = T extends `on${infer E}` ? E : never\n\nconst clickName: EventName<"onClick"> = "Click"\nconst changeName: EventName<"onChange"> = "Change"\n\nconsole.log(clickName, changeName)',
+  // 実践シナリオA: TonariCafe（040-042）。連作のため後続レッスンの initialCode が
+  // ここの SOLUTION のアンカーを含むこと（CONTINUITY で機械検証）
+  '040-order-status-model': `type OrderStatus = "pending" | "paid" | "served" | "cancelled"
+
+type Order = {
+  id: number
+  items: string[]
+  status: OrderStatus
+}
+
+const ALL_STATUSES: OrderStatus[] = ["pending", "paid", "served", "cancelled"]
+
+function canCancel(order: Order): boolean {
+  return order.status === "pending" || order.status === "paid"
+}
+
+const order: Order = { id: 1, items: ["latte"], status: "pending" }
+console.log(canCancel(order), ALL_STATUSES.length)`,
+  '041-menu-master-satisfies': `type OrderStatus = "pending" | "paid" | "served" | "cancelled"
+
+type Order = {
+  id: number
+  items: string[]
+  status: OrderStatus
+}
+
+function canCancel(order: Order): boolean {
+  return order.status === "pending" || order.status === "paid"
+}
+
+const MENU = {
+  latte: 480,
+  tea: 420,
+  mocha: 520,
+} satisfies Record<string, number>
+
+type MenuId = keyof typeof MENU
+
+function totalOf(items: MenuId[]): number {
+  return items.reduce((sum, item) => sum + MENU[item], 0)
+}
+
+console.log(totalOf(["latte", "tea"]), canCancel({ id: 1, items: ["latte"], status: "paid" }))`,
+  '042-order-input-guard': `type OrderStatus = "pending" | "paid" | "served" | "cancelled"
+
+type Order = {
+  id: number
+  items: string[]
+  status: OrderStatus
+}
+
+const ALL_STATUSES: OrderStatus[] = ["pending", "paid", "served", "cancelled"]
+
+function canCancel(order: Order): boolean {
+  return order.status === "pending" || order.status === "paid"
+}
+
+function isOrder(value: unknown): value is Order {
+  if (typeof value !== "object" || value === null) return false
+  if (!("id" in value) || !("items" in value) || !("status" in value)) return false
+  if (typeof value.id !== "number") return false
+  if (!Array.isArray(value.items)) return false
+  if (!value.items.every((item: unknown) => typeof item === "string")) return false
+  return ALL_STATUSES.some((s) => s === value.status)
+}
+
+function registerOrder(value: unknown): string {
+  if (!isOrder(value)) {
+    return "不正な注文です"
+  }
+  return "注文 " + value.id + " を受け付けました（" + value.items.length + "品）"
+}
+
+console.log(registerOrder({ id: 1, items: ["latte"], status: "pending" }))`,
+  // 実践シナリオB: Notifier（043-045）
+  '043-notify-settings-patch': `type Notice =
+  | { kind: "email"; to: string; subject: string; body: string }
+  | { kind: "sms"; to: string; body: string }
+
+function format(n: Notice): string {
+  switch (n.kind) {
+    case "email":
+      return "[EMAIL] " + n.subject + " → " + n.to
+    case "sms":
+      return "[SMS] " + n.body.slice(0, 20) + " → " + n.to
+    default: {
+      const _exhaustive: never = n
+      return _exhaustive
+    }
+  }
+}
+
+type Settings = {
+  theme: "light" | "dark"
+  emailEnabled: boolean
+  smsEnabled: boolean
+}
+
+const DEFAULT_SETTINGS: Settings = {
+  theme: "light",
+  emailEnabled: true,
+  smsEnabled: false,
+}
+
+function mergeSettings(base: Settings, patch: Partial<Settings>): Settings {
+  return { ...base, ...patch }
+}
+
+console.log(format({ kind: "email", to: "a@example.com", subject: "hi", body: "" }))
+console.log(mergeSettings(DEFAULT_SETTINGS, { theme: "dark" }).theme)`,
+  '044-notify-new-channel': `type Notice =
+  | { kind: "email"; to: string; subject: string; body: string }
+  | { kind: "sms"; to: string; body: string }
+  | { kind: "push"; deviceId: string; title: string }
+
+type Settings = {
+  theme: "light" | "dark"
+  emailEnabled: boolean
+  smsEnabled: boolean
+}
+
+function mergeSettings(base: Settings, patch: Partial<Settings>): Settings {
+  return { ...base, ...patch }
+}
+
+function format(n: Notice): string {
+  switch (n.kind) {
+    case "email":
+      return "[EMAIL] " + n.subject + " → " + n.to
+    case "sms":
+      return "[SMS] " + n.body.slice(0, 20) + " → " + n.to
+    case "push":
+      return "[PUSH] " + n.title
+    default: {
+      const _exhaustive: never = n
+      return _exhaustive
+    }
+  }
+}
+
+function destinationOf(n: Notice): string {
+  switch (n.kind) {
+    case "email":
+      return n.to
+    case "sms":
+      return n.to
+    case "push":
+      return n.deviceId
+    default: {
+      const _exhaustive: never = n
+      return _exhaustive
+    }
+  }
+}
+
+function charLimitOf(n: Notice): number {
+  switch (n.kind) {
+    case "email":
+      return 5000
+    case "sms":
+      return 70
+    case "push":
+      return 100
+    default: {
+      const _exhaustive: never = n
+      return _exhaustive
+    }
+  }
+}
+
+console.log(format({ kind: "push", deviceId: "dev-1", title: "hi" }), destinationOf({ kind: "push", deviceId: "dev-1", title: "hi" }), charLimitOf({ kind: "push", deviceId: "dev-1", title: "hi" }))`,
+  '045-notify-retry-async': `type Notice =
+  | { kind: "email"; to: string; subject: string; body: string }
+  | { kind: "sms"; to: string; body: string }
+  | { kind: "push"; deviceId: string; title: string }
+
+function format(n: Notice): string {
+  switch (n.kind) {
+    case "email":
+      return "[EMAIL] " + n.subject + " → " + n.to
+    case "sms":
+      return "[SMS] " + n.body.slice(0, 20) + " → " + n.to
+    case "push":
+      return "[PUSH] " + n.title
+    default: {
+      const _exhaustive: never = n
+      return _exhaustive
+    }
+  }
+}
+
+async function retry<T>(fn: () => Promise<T>, times: number): Promise<T> {
+  let lastError: unknown
+  for (let i = 0; i < times; i++) {
+    try {
+      return await fn()
+    } catch (e) {
+      lastError = e
+    }
+  }
+  throw lastError
+}
+
+async function demo(): Promise<void> {
+  const sent = await retry(() => Promise.resolve(format({ kind: "push", deviceId: "d", title: "hi" })), 3)
+  console.log(sent)
+}
+
+demo()`,
+  // 実践シナリオC: レガシー会員APIクライアント（046-048）
+  '046-api-any-removal': `type ApiUser = { name: string; active: boolean }
+
+type ApiResponse = { users: ApiUser[] }
+
+function pickActiveNames(res: ApiResponse): string[] {
+  const names: string[] = []
+  for (const u of res.users) {
+    if (u.active) {
+      names.push(u.name)
+    }
+  }
+  return names
+}
+
+const response: ApiResponse = {
+  users: [
+    { name: "佐藤", active: true },
+    { name: "鈴木", active: false },
+    { name: "高橋", active: true },
+  ],
+}
+
+console.log(pickActiveNames(response))`,
+  '047-api-unknown-guard': `type ApiUser = { name: string; active: boolean }
+
+type ApiResponse = { users: ApiUser[] }
+
+function pickActiveNames(res: ApiResponse): string[] {
+  const names: string[] = []
+  for (const u of res.users) {
+    if (u.active) {
+      names.push(u.name)
+    }
+  }
+  return names
+}
+
+function isApiResponse(value: unknown): value is ApiResponse {
+  if (typeof value !== "object" || value === null) return false
+  if (!("users" in value)) return false
+  if (!Array.isArray(value.users)) return false
+  return value.users.every(
+    (u: unknown) =>
+      typeof u === "object" &&
+      u !== null &&
+      "name" in u &&
+      "active" in u &&
+      typeof u.name === "string" &&
+      typeof u.active === "boolean",
+  )
+}
+
+function handleResponse(json: string): string[] | null {
+  let data: unknown
+  try {
+    data = JSON.parse(json)
+  } catch {
+    return null
+  }
+  if (!isApiResponse(data)) return null
+  return pickActiveNames(data)
+}
+
+console.log(handleResponse('{"users":[{"name":"佐藤","active":true}]}'))`,
+  '048-roles-single-source': `const ROLES = ["admin", "editor", "viewer"] as const
+
+type Role = (typeof ROLES)[number]
+
+function isRole(value: string): boolean {
+  return ROLES.some((r) => r === value)
+}
+
+function describeRole(role: Role): string {
+  if (role === "admin") return "管理者"
+  if (role === "editor") return "編集者"
+  return "閲覧者"
+}
+
+console.log(isRole("admin"), describeRole("viewer"))`,
 }
 // 誤り版（id 重複可なので配列）。label は失敗理由の説明。
 // 「コメント/文字列バイパス」= 型を書かずキーワードをコメントや文字列に置くチート答案。
@@ -359,6 +648,701 @@ const WRONG = [
     label: '文字列偽装バイパス',
     code: 'const _cheat = "type EventName<T> = T extends `on${infer E}` ? E : never"\ntype EventName<T> = string\nconst clickName: EventName<"onClick"> = "Click"\nconst changeName: EventName<"onChange"> = "Change"\nconsole.log(clickName, changeName)',
   },
+  // 実践クラス（040+）: コメントバイパス＋ダミー構文バイパスを各レッスン必須（正本 3章）
+  {
+    id: '040-order-status-model',
+    label: 'コメントバイパス',
+    code: `// type OrderStatus = "pending" | "paid" | "served" | "cancelled"
+type OrderStatus = string
+type Order = { id: number; items: string[]; status: OrderStatus }
+const ALL_STATUSES: OrderStatus[] = ["pending", "paid", "served", "cancelled"]
+function canCancel(order: Order): boolean {
+  return order.status === "pending" || order.status === "paid"
+}
+console.log(canCancel({ id: 1, items: [], status: "pending" }), ALL_STATUSES.length)`,
+  },
+  {
+    // ダミーUnion（"x"×4）で②Union形を満たし、①を避けるため ALL_STATUSES の注釈を剥がすチート
+    // → ALL_STATUSES アンカー②で不合格（ブラウザでは注釈を残しても①が落とす）
+    id: '040-order-status-model',
+    label: 'ダミーUnion＋注釈剥がし',
+    code: `type OrderStatus = "x" | "x" | "x" | "x"
+type Order = { id: number; items: string[]; status: string }
+const ALL_STATUSES = ["pending", "paid", "served", "cancelled"]
+function canCancel(order: Order): boolean {
+  return order.status === "pending" || order.status === "paid"
+}
+console.log(canCancel({ id: 1, items: [], status: "pending" }), ALL_STATUSES.length)`,
+  },
+  {
+    // 正解の宣言を置換付きテンプレートに隠すチート: structure では中身が空白化され②Union形に一致しない
+    id: '040-order-status-model',
+    label: 'テンプレート偽装バイパス',
+    code: 'const _memo = `${""}type OrderStatus = "pending" | "paid" | "served" | "cancelled"${""}`\ntype OrderStatus = string\ntype Order = { id: number; items: string[]; status: OrderStatus }\nconst ALL_STATUSES: OrderStatus[] = ["pending", "paid", "served", "cancelled"]\nfunction canCancel(order: Order): boolean {\n  return order.status === "pending" || order.status === "paid"\n}\nconsole.log(canCancel({ id: 1, items: [], status: "pending" }), ALL_STATUSES.length)',
+  },
+  {
+    id: '041-menu-master-satisfies',
+    label: 'コメントバイパス',
+    code: `type OrderStatus = "pending" | "paid" | "served" | "cancelled"
+type Order = { id: number; items: string[]; status: OrderStatus }
+function canCancel(order: Order): boolean {
+  return order.status === "pending" || order.status === "paid"
+}
+// const MENU = {...} satisfies Record<string, number>
+// type MenuId = keyof typeof MENU
+const MENU = { latte: 480, tea: 420, mocha: 520 }
+type MenuId = string
+function totalOf(items: MenuId[]): number {
+  return items.reduce((sum, item) => sum + MENU[item as keyof typeof MENU], 0)
+}
+console.log(totalOf(["latte", "tea"]))`,
+  },
+  {
+    // 課題対象と無関係なダミー宣言で satisfies の存在チェックを満たそうとするチート
+    // → MENU 名アンカー②で不合格（識別子アンカー規約の回帰カナリア）
+    id: '041-menu-master-satisfies',
+    label: 'ダミーsatisfies',
+    code: `type OrderStatus = "pending" | "paid" | "served" | "cancelled"
+type Order = { id: number; items: string[]; status: OrderStatus }
+function canCancel(order: Order): boolean {
+  return order.status === "pending" || order.status === "paid"
+}
+const _dummy = {} satisfies Record<string, number>
+const MENU = { latte: 480, tea: 420, mocha: 520 }
+type MenuId = keyof typeof MENU
+function totalOf(items: MenuId[]): number {
+  return items.reduce((sum, item) => sum + MENU[item], 0)
+}
+console.log(totalOf(["latte", "tea"]))`,
+  },
+  {
+    // satisfies でなく型注釈のまま → MenuId が string に広がる（038 と同じ widening の罠）
+    id: '041-menu-master-satisfies',
+    label: '注釈残し',
+    code: `type OrderStatus = "pending" | "paid" | "served" | "cancelled"
+type Order = { id: number; items: string[]; status: OrderStatus }
+function canCancel(order: Order): boolean {
+  return order.status === "pending" || order.status === "paid"
+}
+const MENU: Record<string, number> = { latte: 480, tea: 420, mocha: 520 }
+type MenuId = keyof typeof MENU
+function totalOf(items: MenuId[]): number {
+  return items.reduce((sum, item) => sum + MENU[item], 0)
+}
+console.log(totalOf(["latte", "tea"]))`,
+  },
+  {
+    id: '042-order-input-guard',
+    label: 'コメントバイパス',
+    code: `type OrderStatus = "pending" | "paid" | "served" | "cancelled"
+type Order = { id: number; items: string[]; status: OrderStatus }
+const ALL_STATUSES: OrderStatus[] = ["pending", "paid", "served", "cancelled"]
+function canCancel(order: Order): boolean {
+  return order.status === "pending" || order.status === "paid"
+}
+// function isOrder(value: unknown): value is Order
+function isOrder(value) {
+  return typeof value === "object" && value !== null
+}
+function registerOrder(value) {
+  if (!isOrder(value)) {
+    return "不正な注文です"
+  }
+  return "注文 " + value.id + " を受け付けました（" + value.items.length + "品）"
+}
+console.log(registerOrder({ id: 1, items: ["latte"], status: "pending" }))`,
+  },
+  {
+    // 型述語は書くが検証しない（常に true）→ ③の不正データ・null ケースで不合格
+    id: '042-order-input-guard',
+    label: '検証しない型述語',
+    code: `type OrderStatus = "pending" | "paid" | "served" | "cancelled"
+type Order = { id: number; items: string[]; status: OrderStatus }
+const ALL_STATUSES: OrderStatus[] = ["pending", "paid", "served", "cancelled"]
+function canCancel(order: Order): boolean {
+  return order.status === "pending" || order.status === "paid"
+}
+function isOrder(value: unknown): value is Order {
+  return true
+}
+function registerOrder(value: unknown): string {
+  if (!isOrder(value)) {
+    return "不正な注文です"
+  }
+  return "注文 " + value.id + " を受け付けました（" + value.items.length + "品）"
+}
+console.log(registerOrder({ id: 1, items: ["latte"], status: "pending" }))`,
+  },
+  {
+    // 型述語を書かず as Order で断定するチート → ②不存在チェックで不合格
+    id: '042-order-input-guard',
+    label: 'as 断定',
+    code: `type OrderStatus = "pending" | "paid" | "served" | "cancelled"
+type Order = { id: number; items: string[]; status: OrderStatus }
+const ALL_STATUSES: OrderStatus[] = ["pending", "paid", "served", "cancelled"]
+function canCancel(order: Order): boolean {
+  return order.status === "pending" || order.status === "paid"
+}
+function isOrder(value: unknown): boolean {
+  if (typeof value !== "object" || value === null) return false
+  if (!("id" in value) || !("items" in value) || !("status" in value)) return false
+  if (typeof value.id !== "number") return false
+  if (!Array.isArray(value.items)) return false
+  if (!value.items.every((item: unknown) => typeof item === "string")) return false
+  return ALL_STATUSES.some((s) => s === value.status)
+}
+function registerOrder(value: unknown): string {
+  if (!isOrder(value)) {
+    return "不正な注文です"
+  }
+  const order = value as Order
+  return "注文 " + order.id + " を受け付けました（" + order.items.length + "品）"
+}
+console.log(registerOrder({ id: 1, items: ["latte"], status: "pending" }))`,
+  },
+  {
+    id: '043-notify-settings-patch',
+    label: 'コメントバイパス',
+    code: `type Settings = { theme: "light" | "dark"; emailEnabled: boolean; smsEnabled: boolean }
+type Notice =
+  | { kind: "email"; to: string; subject: string; body: string }
+  | { kind: "sms"; to: string; body: string }
+function format(n: Notice): string {
+  switch (n.kind) {
+    case "email":
+      return "[EMAIL] " + n.subject + " → " + n.to
+    case "sms":
+      return "[SMS] " + n.body.slice(0, 20) + " → " + n.to
+    default: {
+      const _exhaustive: never = n
+      return _exhaustive
+    }
+  }
+}
+// function mergeSettings(base: Settings, patch: Partial<Settings>): Settings
+function mergeSettings(base: Settings, patch: Settings): Settings {
+  return { ...base, ...patch }
+}
+console.log(mergeSettings({ theme: "light", emailEnabled: true, smsEnabled: false }, { theme: "dark", emailEnabled: true, smsEnabled: false }).theme)`,
+  },
+  {
+    // mergeSettings とは別のダミー関数の引数で②を満たそうとするチート
+    // → mergeSettings シグネチャへのアンカーで不合格（識別子アンカー規約の回帰カナリア）
+    id: '043-notify-settings-patch',
+    label: 'ダミーPartial',
+    code: `type Settings = { theme: "light" | "dark"; emailEnabled: boolean; smsEnabled: boolean }
+type Notice =
+  | { kind: "email"; to: string; subject: string; body: string }
+  | { kind: "sms"; to: string; body: string }
+function format(n: Notice): string {
+  switch (n.kind) {
+    case "email":
+      return "[EMAIL] " + n.subject + " → " + n.to
+    case "sms":
+      return "[SMS] " + n.body.slice(0, 20) + " → " + n.to
+    default: {
+      const _exhaustive: never = n
+      return _exhaustive
+    }
+  }
+}
+function _applyLater(patch: Partial<Settings>): void {}
+function mergeSettings(base: Settings, patch: Settings): Settings {
+  return { ...base, ...patch }
+}
+console.log(mergeSettings({ theme: "light", emailEnabled: true, smsEnabled: false }, { theme: "dark", emailEnabled: true, smsEnabled: false }).theme)`,
+  },
+  {
+    // Partial にはするが base を直接書き換える → ③非破壊テストで不合格
+    id: '043-notify-settings-patch',
+    label: '破壊的マージ',
+    code: `type Settings = { theme: "light" | "dark"; emailEnabled: boolean; smsEnabled: boolean }
+type Notice =
+  | { kind: "email"; to: string; subject: string; body: string }
+  | { kind: "sms"; to: string; body: string }
+function format(n: Notice): string {
+  switch (n.kind) {
+    case "email":
+      return "[EMAIL] " + n.subject + " → " + n.to
+    case "sms":
+      return "[SMS] " + n.body.slice(0, 20) + " → " + n.to
+    default: {
+      const _exhaustive: never = n
+      return _exhaustive
+    }
+  }
+}
+function mergeSettings(base: Settings, patch: Partial<Settings>): Settings {
+  return Object.assign(base, patch)
+}
+console.log(mergeSettings({ theme: "light", emailEnabled: true, smsEnabled: false }, { theme: "dark" }).theme)`,
+  },
+  {
+    // never チェックを全部消してコメントへ移すチート → ②カウントで不合格（push 動作は正しくても落ちる）
+    id: '044-notify-new-channel',
+    label: 'コメントバイパス',
+    code: `type Notice =
+  | { kind: "email"; to: string; subject: string; body: string }
+  | { kind: "sms"; to: string; body: string }
+  | { kind: "push"; deviceId: string; title: string }
+type Settings = { theme: "light" | "dark"; emailEnabled: boolean; smsEnabled: boolean }
+function mergeSettings(base: Settings, patch: Partial<Settings>): Settings {
+  return { ...base, ...patch }
+}
+// default: { const _exhaustive: never = n; return _exhaustive }
+function format(n: Notice): string {
+  switch (n.kind) {
+    case "email":
+      return "[EMAIL] " + n.subject + " → " + n.to
+    case "sms":
+      return "[SMS] " + n.body.slice(0, 20) + " → " + n.to
+    case "push":
+      return "[PUSH] " + n.title
+  }
+}
+function destinationOf(n: Notice): string {
+  switch (n.kind) {
+    case "email":
+      return n.to
+    case "sms":
+      return n.to
+    case "push":
+      return n.deviceId
+  }
+}
+function charLimitOf(n: Notice): number {
+  switch (n.kind) {
+    case "email":
+      return 5000
+    case "sms":
+      return 70
+    case "push":
+      return 100
+  }
+}
+console.log(format({ kind: "push", deviceId: "d", title: "t" }))`,
+  },
+  {
+    // default を消し、無関係な never[] ダミー宣言でカウントを満たそうとするチート
+    // → default: アンカー＋代入形（: never =）で不合格
+    id: '044-notify-new-channel',
+    label: 'ダミーnever配列',
+    code: `type Notice =
+  | { kind: "email"; to: string; subject: string; body: string }
+  | { kind: "sms"; to: string; body: string }
+  | { kind: "push"; deviceId: string; title: string }
+type Settings = { theme: "light" | "dark"; emailEnabled: boolean; smsEnabled: boolean }
+function mergeSettings(base: Settings, patch: Partial<Settings>): Settings {
+  return { ...base, ...patch }
+}
+const _a: never[] = []
+const _b: never[] = []
+const _c: never[] = []
+function format(n: Notice): string {
+  switch (n.kind) {
+    case "email":
+      return "[EMAIL] " + n.subject + " → " + n.to
+    case "sms":
+      return "[SMS] " + n.body.slice(0, 20) + " → " + n.to
+    case "push":
+      return "[PUSH] " + n.title
+  }
+}
+function destinationOf(n: Notice): string {
+  switch (n.kind) {
+    case "email":
+      return n.to
+    case "sms":
+      return n.to
+    case "push":
+      return n.deviceId
+  }
+}
+function charLimitOf(n: Notice): number {
+  switch (n.kind) {
+    case "email":
+      return 5000
+    case "sms":
+      return 70
+    case "push":
+      return 100
+  }
+}
+console.log(format({ kind: "push", deviceId: "d", title: "t" }))`,
+  },
+  {
+    // 網羅性チェックを放棄して default で空文字を返す＋push 未対応 → ②と③の両方で不合格
+    id: '044-notify-new-channel',
+    label: '網羅性チェックの放棄',
+    code: `type Notice =
+  | { kind: "email"; to: string; subject: string; body: string }
+  | { kind: "sms"; to: string; body: string }
+  | { kind: "push"; deviceId: string; title: string }
+type Settings = { theme: "light" | "dark"; emailEnabled: boolean; smsEnabled: boolean }
+function mergeSettings(base: Settings, patch: Partial<Settings>): Settings {
+  return { ...base, ...patch }
+}
+function format(n: Notice): string {
+  switch (n.kind) {
+    case "email":
+      return "[EMAIL] " + n.subject + " → " + n.to
+    case "sms":
+      return "[SMS] " + n.body.slice(0, 20) + " → " + n.to
+    default:
+      return ""
+  }
+}
+function destinationOf(n: Notice): string {
+  switch (n.kind) {
+    case "email":
+      return n.to
+    case "sms":
+      return n.to
+    default:
+      return ""
+  }
+}
+function charLimitOf(n: Notice): number {
+  switch (n.kind) {
+    case "email":
+      return 5000
+    case "sms":
+      return 70
+    default:
+      return 0
+  }
+}
+console.log(format({ kind: "push", deviceId: "d", title: "t" }))`,
+  },
+  {
+    id: '045-notify-retry-async',
+    label: 'コメントバイパス',
+    code: `type Notice =
+  | { kind: "email"; to: string; subject: string; body: string }
+  | { kind: "sms"; to: string; body: string }
+  | { kind: "push"; deviceId: string; title: string }
+function format(n: Notice): string {
+  switch (n.kind) {
+    case "email":
+      return "[EMAIL] " + n.subject + " → " + n.to
+    case "sms":
+      return "[SMS] " + n.body.slice(0, 20) + " → " + n.to
+    case "push":
+      return "[PUSH] " + n.title
+    default: {
+      const _exhaustive: never = n
+      return _exhaustive
+    }
+  }
+}
+// async function retry<T>(fn: () => Promise<T>, times: number): Promise<T>
+async function retry(fn, times) {
+  let lastError
+  for (let i = 0; i < times; i++) {
+    try {
+      return await fn()
+    } catch (e) {
+      lastError = e
+    }
+  }
+  throw lastError
+}
+console.log(typeof retry)`,
+  },
+  {
+    // ジェネリクスの代わりに any で逃げる → ②署名チェックで不合格
+    id: '045-notify-retry-async',
+    label: 'any 署名',
+    code: `type Notice =
+  | { kind: "email"; to: string; subject: string; body: string }
+  | { kind: "sms"; to: string; body: string }
+  | { kind: "push"; deviceId: string; title: string }
+function format(n: Notice): string {
+  switch (n.kind) {
+    case "email":
+      return "[EMAIL] " + n.subject + " → " + n.to
+    case "sms":
+      return "[SMS] " + n.body.slice(0, 20) + " → " + n.to
+    case "push":
+      return "[PUSH] " + n.title
+    default: {
+      const _exhaustive: never = n
+      return _exhaustive
+    }
+  }
+}
+async function retry(fn: () => Promise<any>, times: number): Promise<any> {
+  let lastError: unknown
+  for (let i = 0; i < times; i++) {
+    try {
+      return await fn()
+    } catch (e) {
+      lastError = e
+    }
+  }
+  throw lastError
+}
+console.log(typeof retry)`,
+  },
+  {
+    // 署名は正しいが再試行しない（仮実装のまま）→ ③呼び出し回数で不合格
+    id: '045-notify-retry-async',
+    label: '再試行なし',
+    code: `type Notice =
+  | { kind: "email"; to: string; subject: string; body: string }
+  | { kind: "sms"; to: string; body: string }
+  | { kind: "push"; deviceId: string; title: string }
+function format(n: Notice): string {
+  switch (n.kind) {
+    case "email":
+      return "[EMAIL] " + n.subject + " → " + n.to
+    case "sms":
+      return "[SMS] " + n.body.slice(0, 20) + " → " + n.to
+    case "push":
+      return "[PUSH] " + n.title
+    default: {
+      const _exhaustive: never = n
+      return _exhaustive
+    }
+  }
+}
+function retry<T>(fn: () => Promise<T>, times: number): Promise<T> {
+  return fn()
+}
+console.log(typeof retry)`,
+  },
+  {
+    // retry とは別のダミージェネリック関数で②を満たそうとするチート → retry 名アンカーで不合格
+    id: '045-notify-retry-async',
+    label: 'ダミージェネリック',
+    code: `type Notice =
+  | { kind: "email"; to: string; subject: string; body: string }
+  | { kind: "sms"; to: string; body: string }
+  | { kind: "push"; deviceId: string; title: string }
+function format(n: Notice): string {
+  switch (n.kind) {
+    case "email":
+      return "[EMAIL] " + n.subject + " → " + n.to
+    case "sms":
+      return "[SMS] " + n.body.slice(0, 20) + " → " + n.to
+    case "push":
+      return "[PUSH] " + n.title
+    default: {
+      const _exhaustive: never = n
+      return _exhaustive
+    }
+  }
+}
+function _once<T>(fn: () => Promise<T>, times: number): Promise<T> {
+  return fn()
+}
+async function retry(fn: () => Promise<string>, times: number): Promise<string> {
+  let lastError: unknown
+  for (let i = 0; i < times; i++) {
+    try {
+      return await fn()
+    } catch (e) {
+      lastError = e
+    }
+  }
+  throw lastError
+}
+console.log(typeof retry)`,
+  },
+  {
+    id: '046-api-any-removal',
+    label: 'コメントバイパス',
+    code: `// type ApiUser = { name: string; active: boolean }
+// type ApiResponse = { users: ApiUser[] }
+function pickActiveNames(res: any): any {
+  const names: any = []
+  for (const u of res.users) {
+    if (u.active) {
+      names.push(u.name)
+    }
+  }
+  return names
+}
+const response: any = {
+  users: [{ name: "佐藤", active: true }],
+}
+console.log(pickActiveNames(response))`,
+  },
+  {
+    // 型は定義するがシグネチャの any を残すチート → 不存在チェック（\\bany\\b）で不合格
+    id: '046-api-any-removal',
+    label: 'any温存',
+    code: `type ApiUser = { name: string; active: boolean }
+type ApiResponse = { users: ApiUser[] }
+function pickActiveNames(res: any): any {
+  const names: any = []
+  for (const u of res.users) {
+    if (u.active) {
+      names.push(u.name)
+    }
+  }
+  return names
+}
+const response: ApiResponse = {
+  users: [{ name: "佐藤", active: true }],
+}
+console.log(pickActiveNames(response))`,
+  },
+  {
+    // as unknown as の二段キャスト逃げ → ブランケット as 不存在チェックで不合格
+    id: '046-api-any-removal',
+    label: '二段キャスト',
+    code: `type ApiUser = { name: string; active: boolean }
+type ApiResponse = { users: ApiUser[] }
+function pickActiveNames(res: ApiResponse): string[] {
+  const names = []
+  for (const u of res.users) {
+    if (u.active) {
+      names.push(u.name)
+    }
+  }
+  return names as unknown as string[]
+}
+const response: ApiResponse = {
+  users: [{ name: "佐藤", active: true }],
+}
+console.log(pickActiveNames(response))`,
+  },
+  {
+    id: '047-api-unknown-guard',
+    label: 'コメントバイパス',
+    code: `type ApiUser = { name: string; active: boolean }
+type ApiResponse = { users: ApiUser[] }
+function pickActiveNames(res: ApiResponse): string[] {
+  const names: string[] = []
+  for (const u of res.users) {
+    if (u.active) {
+      names.push(u.name)
+    }
+  }
+  return names
+}
+// let data: unknown / data = JSON.parse(json) / value is ApiResponse
+function handleResponse(json: string): string[] | null {
+  const data = JSON.parse(json) as ApiResponse
+  return pickActiveNames(data)
+}
+console.log(handleResponse('{"users":[{"name":"佐藤","active":true}]}'))`,
+  },
+  {
+    // 型述語は書くが検証しない（常に true）→ try の範囲を絞った構成では
+    // 不正データがクラッシュとして表面化し③で不合格（catch で null に化けない）
+    id: '047-api-unknown-guard',
+    label: '検証しない型述語',
+    code: `type ApiUser = { name: string; active: boolean }
+type ApiResponse = { users: ApiUser[] }
+function pickActiveNames(res: ApiResponse): string[] {
+  const names: string[] = []
+  for (const u of res.users) {
+    if (u.active) {
+      names.push(u.name)
+    }
+  }
+  return names
+}
+function isApiResponse(value: unknown): value is ApiResponse {
+  return true
+}
+function handleResponse(json: string): string[] | null {
+  let data: unknown
+  try {
+    data = JSON.parse(json)
+  } catch {
+    return null
+  }
+  if (!isApiResponse(data)) return null
+  return pickActiveNames(data)
+}
+console.log(handleResponse('{"users":[{"name":"佐藤","active":true}]}'))`,
+  },
+  {
+    // 課題と無関係なダミー unknown 宣言＋型なし parse → JSON.parse アンカーの②で不合格
+    id: '047-api-unknown-guard',
+    label: 'ダミーunknown',
+    code: `type ApiUser = { name: string; active: boolean }
+type ApiResponse = { users: ApiUser[] }
+const _placeholder: unknown = 0
+function pickActiveNames(res: ApiResponse): string[] {
+  const names: string[] = []
+  for (const u of res.users) {
+    if (u.active) {
+      names.push(u.name)
+    }
+  }
+  return names
+}
+function isApiResponse(value: unknown): value is ApiResponse {
+  if (typeof value !== "object" || value === null) return false
+  if (!("users" in value)) return false
+  return Array.isArray(value.users)
+}
+function handleResponse(json: string): string[] | null {
+  let data
+  try {
+    data = JSON.parse(json)
+  } catch {
+    return null
+  }
+  if (!isApiResponse(data)) return null
+  return pickActiveNames(data)
+}
+console.log(handleResponse('{"users":[{"name":"佐藤","active":true}]}'))`,
+  },
+  {
+    id: '048-roles-single-source',
+    label: 'コメントバイパス',
+    code: `// const ROLES = ["admin", "editor", "viewer"] as const
+// type Role = (typeof ROLES)[number]
+type Role = "admin" | "editor" | "viewer"
+const ROLES = ["admin", "editor", "viewer"]
+function isRole(value: string): boolean {
+  return ROLES.includes(value)
+}
+function describeRole(role: Role): string {
+  if (role === "admin") return "管理者"
+  if (role === "editor") return "編集者"
+  return "閲覧者"
+}
+console.log(isRole("admin"), describeRole("viewer"))`,
+  },
+  {
+    // 課題と無関係な空配列に as const を付けるダミー → ROLES 名アンカーの②で不合格
+    id: '048-roles-single-source',
+    label: 'ダミーas const',
+    code: `const _empty = [] as const
+type Role = (typeof ROLES)[number]
+const ROLES = ["admin", "editor", "viewer"]
+function isRole(value: string): boolean {
+  return ROLES.includes(value)
+}
+function describeRole(role: Role): string {
+  if (role === "admin") return "管理者"
+  if (role === "editor") return "編集者"
+  return "閲覧者"
+}
+console.log(isRole("admin"), describeRole("viewer"))`,
+  },
+  {
+    // as const は付けるが手書き Union を温存（導出しない）→ ②導出チェックと手書き不存在チェックで不合格
+    id: '048-roles-single-source',
+    label: '導出なし',
+    code: `type Role = "admin" | "editor" | "viewer"
+const ROLES = ["admin", "editor", "viewer"] as const
+function isRole(value: string): boolean {
+  return ROLES.some((r) => r === value)
+}
+function describeRole(role: Role): string {
+  if (role === "admin") return "管理者"
+  if (role === "editor") return "編集者"
+  return "閲覧者"
+}
+console.log(isRole("admin"), describeRole("viewer"))`,
+  },
 ]
 
 // 連作整合: initialCode(N+1) が前レッスン模範解答のアンカー文字列を含むこと。
@@ -366,7 +1350,44 @@ const WRONG = [
 // （設計正本 curriculum-practical.md 4-4。anchors は前レッスンで完成する中核宣言を1〜3個）。
 // シナリオ実装 PR ごとに追記していく。
 const CONTINUITY = [
-  // { id: '041-...', prev: '040-...', anchors: ['type OrderStatus ='] },
+  {
+    id: '041-menu-master-satisfies',
+    prev: '040-order-status-model',
+    anchors: [
+      'type OrderStatus = "pending" | "paid" | "served" | "cancelled"',
+      'function canCancel(order: Order): boolean {',
+    ],
+  },
+  {
+    id: '042-order-input-guard',
+    prev: '041-menu-master-satisfies',
+    anchors: [
+      'type OrderStatus = "pending" | "paid" | "served" | "cancelled"',
+      'function canCancel(order: Order): boolean {',
+    ],
+  },
+  {
+    id: '044-notify-new-channel',
+    prev: '043-notify-settings-patch',
+    anchors: [
+      '| { kind: "email"; to: string; subject: string; body: string }',
+      'function mergeSettings(base: Settings, patch: Partial<Settings>): Settings {',
+    ],
+  },
+  {
+    id: '045-notify-retry-async',
+    prev: '044-notify-new-channel',
+    anchors: ['| { kind: "push"; deviceId: string; title: string }', 'return "[PUSH] " + n.title'],
+  },
+  // 048 は同コードベースの別ファイル想定でコードを引き継がないため、連作アンカーは 047 のみ
+  {
+    id: '047-api-unknown-guard',
+    prev: '046-api-any-removal',
+    anchors: [
+      'type ApiUser = { name: string; active: boolean }',
+      'function pickActiveNames(res: ApiResponse): string[] {',
+    ],
+  },
 ]
 
 // ProblemPane の splitAtPeriod は `〜` / **〜** の内側の「。」でも文分割してしまうため、

@@ -18,7 +18,23 @@ export type ScenarioInfo = {
 type ScenarioDef = { title: string; flow: string; lessons: readonly string[] }
 
 // シナリオはレッスン実装 PR（シナリオA/B/C）ごとに追記していく
-const SCENARIOS: readonly ScenarioDef[] = []
+const SCENARIOS: readonly ScenarioDef[] = [
+  {
+    title: 'TonariCafe',
+    flow: '新規開発',
+    lessons: ['040-order-status-model', '041-menu-master-satisfies', '042-order-input-guard'],
+  },
+  {
+    title: 'Notifier',
+    flow: '機能追加',
+    lessons: ['043-notify-settings-patch', '044-notify-new-channel', '045-notify-retry-async'],
+  },
+  {
+    title: '会員APIクライアント',
+    flow: '既存改修',
+    lessons: ['046-api-any-removal', '047-api-unknown-guard', '048-roles-single-source'],
+  },
+]
 
 export function getScenarioInfo(lessonId: string): ScenarioInfo | undefined {
   for (const s of SCENARIOS) {
