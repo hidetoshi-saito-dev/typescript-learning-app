@@ -29,6 +29,11 @@ const SCENARIOS: readonly ScenarioDef[] = [
     flow: '機能追加',
     lessons: ['043-notify-settings-patch', '044-notify-new-channel', '045-notify-retry-async'],
   },
+  {
+    title: '会員APIクライアント',
+    flow: '既存改修',
+    lessons: ['046-api-any-removal', '047-api-unknown-guard', '048-roles-single-source'],
+  },
 ]
 
 export function getScenarioInfo(lessonId: string): ScenarioInfo | undefined {
