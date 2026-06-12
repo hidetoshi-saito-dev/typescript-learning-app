@@ -352,14 +352,17 @@ const isPractical = getLessonLevel(lesson.id) === 'practical'
 - 学び: `JSON.parse(json) as ApiResponse` という実行時に何も守らないキャスト（不正データでクラッシュする実バグ）を、
   `unknown` 受け＋型述語＋不正時 null 返却に改修。バグ修正と型強化が同時に進む体験。
 - initialCode（約35行）: 046 完成形＋`as ApiResponse` キャスト入り `handleResponse(json: string)`。
-- ②structure: 存在 `:[ \t]*unknown[ \t]*=[ \t]*JSON[ \t]*\.[ \t]*parse\b`
+- ②structure: 存在 `:[ \t]*unknown\b[\s\S]{0,40}?=[ \t]*JSON[ \t]*\.[ \t]*parse\b`
   （**JSON.parse 地点にアンカー**。素朴な `: unknown` 存在はダミー変数で満たせる上、
-  JSON.parse の lib 由来 any は文面に any が出ず不存在チェックで捕捉不能——アンカーが唯一の砦）／
-  存在 `\)[ \t]*:[ \t]*\w+[ \t]+is[ \t]+ApiResponse\b`／
+  JSON.parse の lib 由来 any は文面に any が出ず不存在チェックで捕捉不能——アンカーが唯一の砦。
+  `{0,40}` 窓で `let data: unknown` → try 内代入の分離形と `const data: unknown = JSON.parse(json)` 形の
+  両スタイルを許容）／存在 `\)[ \t]*:[ \t]*\w+[ \t]+is[ \t]+ApiResponse\b`／
   不存在 `\bas[ \t]+ApiResponse\b`・`\bany\b`（046 で全廃した any の再侵入防止）。
-- **宣言形の固定（レビューE-2）**: `let data: unknown` → try 内で代入、という分離スタイルの正答が
-  アンカーで偽陰性になるため、challenge/hint で **`const data: unknown = JSON.parse(json)`
-  （try 内で宣言と代入を同時に行う）の形を明示指定**する（015 の T 名指定と同じ「仕様で書き方を固定」前例）。
+- **宣言形は「let 分離＋try は JSON.parse の1行だけ」を正とする（実装時に E-2 から変更）**:
+  レビューE-2 の「const を try 内で宣言と代入を同時に」の形は、try が検証後のコードまで包むため、
+  **「検証しない型述語」チート答案のクラッシュが catch で null に化け、③の不正データ検査が偽陽性になる**
+  ことが実装中に判明した。try の範囲を JSON.parse に絞れば、検証漏れはクラッシュとして③に表面化する。
+  「パースの失敗と形の違いは別の失敗——catch の範囲を絞るのは実務の作法」として教材にも明文化（047 description）。
 - ③ 4本: 正常JSON→値／フィールド欠落JSON→null（**旧コードはクラッシュ＝バグ修正の証明**）／
   壊れたJSON→null（try/catch 必須を challenge に明記）／046 範囲の回帰1本。
 - ①必然性ゲート: unknown 化で絞り込みなしアクセスが strict エラー（042 同型）。
