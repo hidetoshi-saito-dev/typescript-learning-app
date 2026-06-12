@@ -136,12 +136,14 @@ export function CodeEditor({ initialCode, onChange, onDiagnosticsChange }: Props
       setTimeout(fetchDiagnostics, 1500)
 
       // マウント直後の内部レイアウト調整が終わってから表示に切り替える。
-      // rAF 1回だけでは ResizeObserver 経由の非同期レイアウトパスを取りこぼし、
-      // 本番計測で 3回に1回ほど表示後にシフトが発生した（CLS 0.231）。
-      // 150ms + rAF まで広げて調整を不可視のうちに吸収する。
+      // rAF 1回だけでは ResizeObserver 経由の非同期レイアウトパスを取りこぼす
+      // （本番計測で CLS 0.231）。さらに Lighthouse は 4x CPU スロットルで計測する
+      // ため、150ms でも稀に抜けた。400ms + rAF まで広げて吸収する。
+      // ※時間ベースの窓は原理的に確率対策。実ユーザーの CLS は Speed Insights
+      //   （フィールドデータ）を正とする。
       window.setTimeout(() => {
         requestAnimationFrame(() => setEditorSettled(true))
-      }, 150)
+      }, 400)
     },
     [fetchDiagnostics],
   )

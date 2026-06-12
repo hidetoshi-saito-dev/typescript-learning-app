@@ -79,7 +79,7 @@ export function RetentionPanel({ lessons, completed, isReady, serverProgress }: 
             className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
               isReady && badge.earned
                 ? 'border-amber-200 bg-amber-50 text-amber-800'
-                : 'border-zinc-200 bg-zinc-50 text-zinc-400 opacity-70 grayscale'
+                : 'border-zinc-200 bg-zinc-50 text-zinc-600 grayscale'
             }`}
           >
             <span aria-hidden="true">{badge.icon}</span>
