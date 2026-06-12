@@ -294,6 +294,141 @@ function registerOrder(value: unknown): string {
 }
 
 console.log(registerOrder({ id: 1, items: ["latte"], status: "pending" }))`,
+  // 実践シナリオB: Notifier（043-045）
+  '043-notify-settings-patch': `type Notice =
+  | { kind: "email"; to: string; subject: string; body: string }
+  | { kind: "sms"; to: string; body: string }
+
+function format(n: Notice): string {
+  switch (n.kind) {
+    case "email":
+      return "[EMAIL] " + n.subject + " → " + n.to
+    case "sms":
+      return "[SMS] " + n.body.slice(0, 20) + " → " + n.to
+    default: {
+      const _exhaustive: never = n
+      return _exhaustive
+    }
+  }
+}
+
+type Settings = {
+  theme: "light" | "dark"
+  emailEnabled: boolean
+  smsEnabled: boolean
+}
+
+const DEFAULT_SETTINGS: Settings = {
+  theme: "light",
+  emailEnabled: true,
+  smsEnabled: false,
+}
+
+function mergeSettings(base: Settings, patch: Partial<Settings>): Settings {
+  return { ...base, ...patch }
+}
+
+console.log(format({ kind: "email", to: "a@example.com", subject: "hi", body: "" }))
+console.log(mergeSettings(DEFAULT_SETTINGS, { theme: "dark" }).theme)`,
+  '044-notify-new-channel': `type Notice =
+  | { kind: "email"; to: string; subject: string; body: string }
+  | { kind: "sms"; to: string; body: string }
+  | { kind: "push"; deviceId: string; title: string }
+
+type Settings = {
+  theme: "light" | "dark"
+  emailEnabled: boolean
+  smsEnabled: boolean
+}
+
+function mergeSettings(base: Settings, patch: Partial<Settings>): Settings {
+  return { ...base, ...patch }
+}
+
+function format(n: Notice): string {
+  switch (n.kind) {
+    case "email":
+      return "[EMAIL] " + n.subject + " → " + n.to
+    case "sms":
+      return "[SMS] " + n.body.slice(0, 20) + " → " + n.to
+    case "push":
+      return "[PUSH] " + n.title
+    default: {
+      const _exhaustive: never = n
+      return _exhaustive
+    }
+  }
+}
+
+function destinationOf(n: Notice): string {
+  switch (n.kind) {
+    case "email":
+      return n.to
+    case "sms":
+      return n.to
+    case "push":
+      return n.deviceId
+    default: {
+      const _exhaustive: never = n
+      return _exhaustive
+    }
+  }
+}
+
+function charLimitOf(n: Notice): number {
+  switch (n.kind) {
+    case "email":
+      return 5000
+    case "sms":
+      return 70
+    case "push":
+      return 100
+    default: {
+      const _exhaustive: never = n
+      return _exhaustive
+    }
+  }
+}
+
+console.log(format({ kind: "push", deviceId: "dev-1", title: "hi" }), destinationOf({ kind: "push", deviceId: "dev-1", title: "hi" }), charLimitOf({ kind: "push", deviceId: "dev-1", title: "hi" }))`,
+  '045-notify-retry-async': `type Notice =
+  | { kind: "email"; to: string; subject: string; body: string }
+  | { kind: "sms"; to: string; body: string }
+  | { kind: "push"; deviceId: string; title: string }
+
+function format(n: Notice): string {
+  switch (n.kind) {
+    case "email":
+      return "[EMAIL] " + n.subject + " → " + n.to
+    case "sms":
+      return "[SMS] " + n.body.slice(0, 20) + " → " + n.to
+    case "push":
+      return "[PUSH] " + n.title
+    default: {
+      const _exhaustive: never = n
+      return _exhaustive
+    }
+  }
+}
+
+async function retry<T>(fn: () => Promise<T>, times: number): Promise<T> {
+  let lastError: unknown
+  for (let i = 0; i < times; i++) {
+    try {
+      return await fn()
+    } catch (e) {
+      lastError = e
+    }
+  }
+  throw lastError
+}
+
+async function demo(): Promise<void> {
+  const sent = await retry(() => Promise.resolve(format({ kind: "push", deviceId: "d", title: "hi" })), 3)
+  console.log(sent)
+}
+
+demo()`,
 }
 // 誤り版（id 重複可なので配列）。label は失敗理由の説明。
 // 「コメント/文字列バイパス」= 型を書かずキーワードをコメントや文字列に置くチート答案。
@@ -585,6 +720,355 @@ function registerOrder(value: unknown): string {
 }
 console.log(registerOrder({ id: 1, items: ["latte"], status: "pending" }))`,
   },
+  {
+    id: '043-notify-settings-patch',
+    label: 'コメントバイパス',
+    code: `type Settings = { theme: "light" | "dark"; emailEnabled: boolean; smsEnabled: boolean }
+type Notice =
+  | { kind: "email"; to: string; subject: string; body: string }
+  | { kind: "sms"; to: string; body: string }
+function format(n: Notice): string {
+  switch (n.kind) {
+    case "email":
+      return "[EMAIL] " + n.subject + " → " + n.to
+    case "sms":
+      return "[SMS] " + n.body.slice(0, 20) + " → " + n.to
+    default: {
+      const _exhaustive: never = n
+      return _exhaustive
+    }
+  }
+}
+// function mergeSettings(base: Settings, patch: Partial<Settings>): Settings
+function mergeSettings(base: Settings, patch: Settings): Settings {
+  return { ...base, ...patch }
+}
+console.log(mergeSettings({ theme: "light", emailEnabled: true, smsEnabled: false }, { theme: "dark", emailEnabled: true, smsEnabled: false }).theme)`,
+  },
+  {
+    // mergeSettings とは別のダミー関数の引数で②を満たそうとするチート
+    // → mergeSettings シグネチャへのアンカーで不合格（識別子アンカー規約の回帰カナリア）
+    id: '043-notify-settings-patch',
+    label: 'ダミーPartial',
+    code: `type Settings = { theme: "light" | "dark"; emailEnabled: boolean; smsEnabled: boolean }
+type Notice =
+  | { kind: "email"; to: string; subject: string; body: string }
+  | { kind: "sms"; to: string; body: string }
+function format(n: Notice): string {
+  switch (n.kind) {
+    case "email":
+      return "[EMAIL] " + n.subject + " → " + n.to
+    case "sms":
+      return "[SMS] " + n.body.slice(0, 20) + " → " + n.to
+    default: {
+      const _exhaustive: never = n
+      return _exhaustive
+    }
+  }
+}
+function _applyLater(patch: Partial<Settings>): void {}
+function mergeSettings(base: Settings, patch: Settings): Settings {
+  return { ...base, ...patch }
+}
+console.log(mergeSettings({ theme: "light", emailEnabled: true, smsEnabled: false }, { theme: "dark", emailEnabled: true, smsEnabled: false }).theme)`,
+  },
+  {
+    // Partial にはするが base を直接書き換える → ③非破壊テストで不合格
+    id: '043-notify-settings-patch',
+    label: '破壊的マージ',
+    code: `type Settings = { theme: "light" | "dark"; emailEnabled: boolean; smsEnabled: boolean }
+type Notice =
+  | { kind: "email"; to: string; subject: string; body: string }
+  | { kind: "sms"; to: string; body: string }
+function format(n: Notice): string {
+  switch (n.kind) {
+    case "email":
+      return "[EMAIL] " + n.subject + " → " + n.to
+    case "sms":
+      return "[SMS] " + n.body.slice(0, 20) + " → " + n.to
+    default: {
+      const _exhaustive: never = n
+      return _exhaustive
+    }
+  }
+}
+function mergeSettings(base: Settings, patch: Partial<Settings>): Settings {
+  return Object.assign(base, patch)
+}
+console.log(mergeSettings({ theme: "light", emailEnabled: true, smsEnabled: false }, { theme: "dark" }).theme)`,
+  },
+  {
+    // never チェックを全部消してコメントへ移すチート → ②カウントで不合格（push 動作は正しくても落ちる）
+    id: '044-notify-new-channel',
+    label: 'コメントバイパス',
+    code: `type Notice =
+  | { kind: "email"; to: string; subject: string; body: string }
+  | { kind: "sms"; to: string; body: string }
+  | { kind: "push"; deviceId: string; title: string }
+type Settings = { theme: "light" | "dark"; emailEnabled: boolean; smsEnabled: boolean }
+function mergeSettings(base: Settings, patch: Partial<Settings>): Settings {
+  return { ...base, ...patch }
+}
+// default: { const _exhaustive: never = n; return _exhaustive }
+function format(n: Notice): string {
+  switch (n.kind) {
+    case "email":
+      return "[EMAIL] " + n.subject + " → " + n.to
+    case "sms":
+      return "[SMS] " + n.body.slice(0, 20) + " → " + n.to
+    case "push":
+      return "[PUSH] " + n.title
+  }
+}
+function destinationOf(n: Notice): string {
+  switch (n.kind) {
+    case "email":
+      return n.to
+    case "sms":
+      return n.to
+    case "push":
+      return n.deviceId
+  }
+}
+function charLimitOf(n: Notice): number {
+  switch (n.kind) {
+    case "email":
+      return 5000
+    case "sms":
+      return 70
+    case "push":
+      return 100
+  }
+}
+console.log(format({ kind: "push", deviceId: "d", title: "t" }))`,
+  },
+  {
+    // default を消し、無関係な never[] ダミー宣言でカウントを満たそうとするチート
+    // → default: アンカー＋代入形（: never =）で不合格
+    id: '044-notify-new-channel',
+    label: 'ダミーnever配列',
+    code: `type Notice =
+  | { kind: "email"; to: string; subject: string; body: string }
+  | { kind: "sms"; to: string; body: string }
+  | { kind: "push"; deviceId: string; title: string }
+type Settings = { theme: "light" | "dark"; emailEnabled: boolean; smsEnabled: boolean }
+function mergeSettings(base: Settings, patch: Partial<Settings>): Settings {
+  return { ...base, ...patch }
+}
+const _a: never[] = []
+const _b: never[] = []
+const _c: never[] = []
+function format(n: Notice): string {
+  switch (n.kind) {
+    case "email":
+      return "[EMAIL] " + n.subject + " → " + n.to
+    case "sms":
+      return "[SMS] " + n.body.slice(0, 20) + " → " + n.to
+    case "push":
+      return "[PUSH] " + n.title
+  }
+}
+function destinationOf(n: Notice): string {
+  switch (n.kind) {
+    case "email":
+      return n.to
+    case "sms":
+      return n.to
+    case "push":
+      return n.deviceId
+  }
+}
+function charLimitOf(n: Notice): number {
+  switch (n.kind) {
+    case "email":
+      return 5000
+    case "sms":
+      return 70
+    case "push":
+      return 100
+  }
+}
+console.log(format({ kind: "push", deviceId: "d", title: "t" }))`,
+  },
+  {
+    // 網羅性チェックを放棄して default で空文字を返す＋push 未対応 → ②と③の両方で不合格
+    id: '044-notify-new-channel',
+    label: '網羅性チェックの放棄',
+    code: `type Notice =
+  | { kind: "email"; to: string; subject: string; body: string }
+  | { kind: "sms"; to: string; body: string }
+  | { kind: "push"; deviceId: string; title: string }
+type Settings = { theme: "light" | "dark"; emailEnabled: boolean; smsEnabled: boolean }
+function mergeSettings(base: Settings, patch: Partial<Settings>): Settings {
+  return { ...base, ...patch }
+}
+function format(n: Notice): string {
+  switch (n.kind) {
+    case "email":
+      return "[EMAIL] " + n.subject + " → " + n.to
+    case "sms":
+      return "[SMS] " + n.body.slice(0, 20) + " → " + n.to
+    default:
+      return ""
+  }
+}
+function destinationOf(n: Notice): string {
+  switch (n.kind) {
+    case "email":
+      return n.to
+    case "sms":
+      return n.to
+    default:
+      return ""
+  }
+}
+function charLimitOf(n: Notice): number {
+  switch (n.kind) {
+    case "email":
+      return 5000
+    case "sms":
+      return 70
+    default:
+      return 0
+  }
+}
+console.log(format({ kind: "push", deviceId: "d", title: "t" }))`,
+  },
+  {
+    id: '045-notify-retry-async',
+    label: 'コメントバイパス',
+    code: `type Notice =
+  | { kind: "email"; to: string; subject: string; body: string }
+  | { kind: "sms"; to: string; body: string }
+  | { kind: "push"; deviceId: string; title: string }
+function format(n: Notice): string {
+  switch (n.kind) {
+    case "email":
+      return "[EMAIL] " + n.subject + " → " + n.to
+    case "sms":
+      return "[SMS] " + n.body.slice(0, 20) + " → " + n.to
+    case "push":
+      return "[PUSH] " + n.title
+    default: {
+      const _exhaustive: never = n
+      return _exhaustive
+    }
+  }
+}
+// async function retry<T>(fn: () => Promise<T>, times: number): Promise<T>
+async function retry(fn, times) {
+  let lastError
+  for (let i = 0; i < times; i++) {
+    try {
+      return await fn()
+    } catch (e) {
+      lastError = e
+    }
+  }
+  throw lastError
+}
+console.log(typeof retry)`,
+  },
+  {
+    // ジェネリクスの代わりに any で逃げる → ②署名チェックで不合格
+    id: '045-notify-retry-async',
+    label: 'any 署名',
+    code: `type Notice =
+  | { kind: "email"; to: string; subject: string; body: string }
+  | { kind: "sms"; to: string; body: string }
+  | { kind: "push"; deviceId: string; title: string }
+function format(n: Notice): string {
+  switch (n.kind) {
+    case "email":
+      return "[EMAIL] " + n.subject + " → " + n.to
+    case "sms":
+      return "[SMS] " + n.body.slice(0, 20) + " → " + n.to
+    case "push":
+      return "[PUSH] " + n.title
+    default: {
+      const _exhaustive: never = n
+      return _exhaustive
+    }
+  }
+}
+async function retry(fn: () => Promise<any>, times: number): Promise<any> {
+  let lastError: unknown
+  for (let i = 0; i < times; i++) {
+    try {
+      return await fn()
+    } catch (e) {
+      lastError = e
+    }
+  }
+  throw lastError
+}
+console.log(typeof retry)`,
+  },
+  {
+    // 署名は正しいが再試行しない（仮実装のまま）→ ③呼び出し回数で不合格
+    id: '045-notify-retry-async',
+    label: '再試行なし',
+    code: `type Notice =
+  | { kind: "email"; to: string; subject: string; body: string }
+  | { kind: "sms"; to: string; body: string }
+  | { kind: "push"; deviceId: string; title: string }
+function format(n: Notice): string {
+  switch (n.kind) {
+    case "email":
+      return "[EMAIL] " + n.subject + " → " + n.to
+    case "sms":
+      return "[SMS] " + n.body.slice(0, 20) + " → " + n.to
+    case "push":
+      return "[PUSH] " + n.title
+    default: {
+      const _exhaustive: never = n
+      return _exhaustive
+    }
+  }
+}
+function retry<T>(fn: () => Promise<T>, times: number): Promise<T> {
+  return fn()
+}
+console.log(typeof retry)`,
+  },
+  {
+    // retry とは別のダミージェネリック関数で②を満たそうとするチート → retry 名アンカーで不合格
+    id: '045-notify-retry-async',
+    label: 'ダミージェネリック',
+    code: `type Notice =
+  | { kind: "email"; to: string; subject: string; body: string }
+  | { kind: "sms"; to: string; body: string }
+  | { kind: "push"; deviceId: string; title: string }
+function format(n: Notice): string {
+  switch (n.kind) {
+    case "email":
+      return "[EMAIL] " + n.subject + " → " + n.to
+    case "sms":
+      return "[SMS] " + n.body.slice(0, 20) + " → " + n.to
+    case "push":
+      return "[PUSH] " + n.title
+    default: {
+      const _exhaustive: never = n
+      return _exhaustive
+    }
+  }
+}
+function _once<T>(fn: () => Promise<T>, times: number): Promise<T> {
+  return fn()
+}
+async function retry(fn: () => Promise<string>, times: number): Promise<string> {
+  let lastError: unknown
+  for (let i = 0; i < times; i++) {
+    try {
+      return await fn()
+    } catch (e) {
+      lastError = e
+    }
+  }
+  throw lastError
+}
+console.log(typeof retry)`,
+  },
 ]
 
 // 連作整合: initialCode(N+1) が前レッスン模範解答のアンカー文字列を含むこと。
@@ -607,6 +1091,19 @@ const CONTINUITY = [
       'type OrderStatus = "pending" | "paid" | "served" | "cancelled"',
       'function canCancel(order: Order): boolean {',
     ],
+  },
+  {
+    id: '044-notify-new-channel',
+    prev: '043-notify-settings-patch',
+    anchors: [
+      '| { kind: "email"; to: string; subject: string; body: string }',
+      'function mergeSettings(base: Settings, patch: Partial<Settings>): Settings {',
+    ],
+  },
+  {
+    id: '045-notify-retry-async',
+    prev: '044-notify-new-channel',
+    anchors: ['| { kind: "push"; deviceId: string; title: string }', 'return "[PUSH] " + n.title'],
   },
 ]
 

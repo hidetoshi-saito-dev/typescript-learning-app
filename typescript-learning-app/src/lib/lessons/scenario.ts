@@ -24,6 +24,11 @@ const SCENARIOS: readonly ScenarioDef[] = [
     flow: '新規開発',
     lessons: ['040-order-status-model', '041-menu-master-satisfies', '042-order-input-guard'],
   },
+  {
+    title: 'Notifier',
+    flow: '機能追加',
+    lessons: ['043-notify-settings-patch', '044-notify-new-channel', '045-notify-retry-async'],
+  },
 ]
 
 export function getScenarioInfo(lessonId: string): ScenarioInfo | undefined {
