@@ -44,6 +44,9 @@ import { lesson as lesson042 } from './data/042-order-input-guard'
 import { lesson as lesson043 } from './data/043-notify-settings-patch'
 import { lesson as lesson044 } from './data/044-notify-new-channel'
 import { lesson as lesson045 } from './data/045-notify-retry-async'
+import { lesson as lesson046 } from './data/046-api-any-removal'
+import { lesson as lesson047 } from './data/047-api-unknown-guard'
+import { lesson as lesson048 } from './data/048-roles-single-source'
 
 const LESSONS: Lesson[] = [
   lesson001,
@@ -91,6 +94,9 @@ const LESSONS: Lesson[] = [
   lesson043,
   lesson044,
   lesson045,
+  lesson046,
+  lesson047,
+  lesson048,
 ]
 
 const catalog = new Map(LESSONS.map((l) => [l.id, l]))
