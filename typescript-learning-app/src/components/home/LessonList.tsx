@@ -5,6 +5,8 @@ import { useMemo, useSyncExternalStore } from 'react'
 import { useHasHydrated } from '@/lib/hooks/use-hydrated'
 import { getGuestServerSnapshot, getGuestSnapshot, subscribeGuest } from '@/lib/progress/guest'
 import { LEVEL_LABELS, LEVEL_ORDER, type LessonLevel } from '@/lib/lessons/level'
+import type { ProgressDetail } from '@/lib/progress/actions'
+import { RetentionPanel } from './RetentionPanel'
 
 // ホーム一覧に必要な最小限のみ（Lesson 全体を受けると本文・判定までクライアントに乗る）
 export type LessonListItem = {
@@ -15,7 +17,8 @@ export type LessonListItem = {
 
 type Props = {
   lessons: LessonListItem[]
-  serverCompleted?: string[]
+  /** ログイン時のみ。完了集合に加え、定着支援（ストリーク/グラフ/復習）の導出元になる */
+  serverProgress?: ProgressDetail[]
 }
 
 const EMPTY_COMPLETED: ReadonlySet<string> = new Set()
@@ -34,7 +37,7 @@ function CheckIcon() {
   )
 }
 
-export function LessonList({ lessons, serverCompleted }: Props) {
+export function LessonList({ lessons, serverProgress }: Props) {
   const hasHydrated = useHasHydrated()
   const guestCompleted = useSyncExternalStore(
     subscribeGuest,
@@ -42,13 +45,13 @@ export function LessonList({ lessons, serverCompleted }: Props) {
     getGuestServerSnapshot,
   )
 
-  // ログイン済みは即座に serverCompleted を、ゲストはハイドレーション後のみ実値を採用
+  // ログイン済みは即座に serverProgress を、ゲストはハイドレーション後のみ実値を採用
   // 未ハイドレーション時は空集合として扱い、UI は placeholder を表示する
-  const isReady = serverCompleted !== undefined || hasHydrated
+  const isReady = serverProgress !== undefined || hasHydrated
   const completed = useMemo<ReadonlySet<string>>(() => {
-    if (serverCompleted !== undefined) return new Set(serverCompleted)
+    if (serverProgress !== undefined) return new Set(serverProgress.map((p) => p.lessonId))
     return hasHydrated ? guestCompleted : EMPTY_COMPLETED
-  }, [serverCompleted, guestCompleted, hasHydrated])
+  }, [serverProgress, guestCompleted, hasHydrated])
 
   const completedCount = lessons.filter((l) => completed.has(l.id)).length
   const totalCount = lessons.length
@@ -102,6 +105,14 @@ export function LessonList({ lessons, serverCompleted }: Props) {
           </p>
         )}
       </div>
+
+      {/* 学習のきろく（バッジ・ストリーク・グラフ・復習） */}
+      <RetentionPanel
+        lessons={lessons}
+        completed={completed}
+        isReady={isReady}
+        serverProgress={serverProgress}
+      />
 
       {/* レッスン一覧（レベル別セクション） */}
       {LEVEL_ORDER.map((level) => {
