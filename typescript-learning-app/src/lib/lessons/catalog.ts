@@ -38,6 +38,9 @@ import { lesson as lesson036 } from './data/036-template-literal-type'
 import { lesson as lesson037 } from './data/037-template-literal-union'
 import { lesson as lesson038 } from './data/038-satisfies'
 import { lesson as lesson039 } from './data/039-event-name'
+import { lesson as lesson040 } from './data/040-order-status-model'
+import { lesson as lesson041 } from './data/041-menu-master-satisfies'
+import { lesson as lesson042 } from './data/042-order-input-guard'
 
 const LESSONS: Lesson[] = [
   lesson001,
@@ -79,6 +82,9 @@ const LESSONS: Lesson[] = [
   lesson037,
   lesson038,
   lesson039,
+  lesson040,
+  lesson041,
+  lesson042,
 ]
 
 const catalog = new Map(LESSONS.map((l) => [l.id, l]))
